@@ -1,0 +1,9 @@
+node_modules/
+.next/
+.env.local
+.env
+uploads/
+*.tsbuildinfo
+next-env.d.ts
+.claude/settings.local.json
+skills-lock.json
