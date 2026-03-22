@@ -5,5 +5,13 @@ node_modules/
 uploads/
 *.tsbuildinfo
 next-env.d.ts
-.claude/settings.local.json
 skills-lock.json
+
+# Internal/sensitive
+CLAUDE.md
+plan.md
+docker-compose.yml
+specs/
+.claude/
+.agents/
+.agent/
