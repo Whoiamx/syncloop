@@ -8,9 +8,9 @@ import { useTheme } from "@/lib/theme-context";
 import type { Locale } from "@/lib/i18n";
 
 const localeOptions: { value: Locale; label: string; flag: string }[] = [
-  { value: "en", label: "English", flag: "\u{1F1FA}\u{1F1F8}" },
-  { value: "es", label: "Espa\u{00F1}ol", flag: "\u{1F1EA}\u{1F1F8}" },
-  { value: "pt", label: "Portugu\u{00EA}s", flag: "\u{1F1E7}\u{1F1F7}" },
+  { value: "en", label: "English", flag: "🇺🇸" },
+  { value: "es", label: "Español", flag: "🇪🇸" },
+  { value: "pt", label: "Português", flag: "🇧🇷" },
 ];
 
 function SidebarLanguageDropdown({
@@ -84,14 +84,27 @@ function SidebarLanguageDropdown({
   );
 }
 
+type NavKey = "home" | "projects" | "exports" | "usage" | "settings";
+
 interface NavItem {
-  labelKey: "projects" | "newProject" | "settings";
+  labelKey: NavKey;
   href: string;
   icon: React.ReactNode;
   matchPaths: string[];
 }
 
 const navItems: NavItem[] = [
+  {
+    labelKey: "home",
+    href: "/home",
+    matchPaths: ["/home"],
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
+        <polyline points="9 22 9 12 15 12 15 22" />
+      </svg>
+    ),
+  },
   {
     labelKey: "projects",
     href: "/dashboard",
@@ -105,20 +118,33 @@ const navItems: NavItem[] = [
     ),
   },
   {
-    labelKey: "newProject",
-    href: "/projects/new",
-    matchPaths: ["/projects/new"],
+    labelKey: "exports",
+    href: "/exports",
+    matchPaths: ["/exports"],
     icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-        <circle cx="12" cy="12" r="10" />
-        <path d="M12 8v8M8 12h8" />
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+        <polyline points="7 10 12 15 17 10" />
+        <line x1="12" y1="15" x2="12" y2="3" />
+      </svg>
+    ),
+  },
+  {
+    labelKey: "usage",
+    href: "/usage",
+    matchPaths: ["/usage"],
+    icon: (
+      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <line x1="18" y1="20" x2="18" y2="10" />
+        <line x1="12" y1="20" x2="12" y2="4" />
+        <line x1="6" y1="20" x2="6" y2="14" />
       </svg>
     ),
   },
   {
     labelKey: "settings",
-    href: "#",
-    matchPaths: [],
+    href: "/settings",
+    matchPaths: ["/settings"],
     icon: (
       <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
         <circle cx="12" cy="12" r="3" />
@@ -134,15 +160,13 @@ export function AppSidebar() {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
 
-  // Close mobile sidebar on route change
   useEffect(() => {
     setMobileOpen(false);
   }, [pathname]);
 
   function isActive(item: NavItem) {
     if (item.matchPaths.some((p) => pathname === p)) return true;
-    // Projects detail pages also highlight "Projects"
-    if (item.labelKey === "projects" && pathname.startsWith("/projects/") && pathname !== "/projects/new") return true;
+    if (item.labelKey === "projects" && pathname.startsWith("/projects/")) return true;
     return false;
   }
 
@@ -166,7 +190,6 @@ export function AppSidebar() {
         </Link>
       </div>
 
-      {/* Separator */}
       <div className="mx-4 border-t border-surface-700/60" />
 
       {/* Nav items */}
@@ -184,7 +207,6 @@ export function AppSidebar() {
                   : "text-surface-400 hover:text-surface-200 hover:bg-surface-800/50"
               }`}
             >
-              {/* Active indicator bar */}
               {active && (
                 <div className="absolute left-0 top-1/2 -translate-y-1/2 w-[3px] h-5 rounded-r-full bg-brand-500 shadow-[0_0_8px_rgba(212,113,78,0.4)]" />
               )}
@@ -198,33 +220,45 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="px-3 pb-4 space-y-2 shrink-0">
-        {/* Separator */}
-        <div className="mx-1 mb-2 border-t border-surface-700/60" />
+      <div className="px-3 pb-4 shrink-0">
+        <div className="mx-1 mb-3 border-t border-surface-700/60" />
 
-        {/* Language selector */}
-        <SidebarLanguageDropdown locale={locale} setLocale={setLocale} />
+        {/* Language & theme row */}
+        <div className="space-y-1 mb-3">
+          <SidebarLanguageDropdown locale={locale} setLocale={setLocale} />
+          <button
+            onClick={toggle}
+            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
+            aria-label="Toggle theme"
+          >
+            {theme === "dark" ? (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <circle cx="12" cy="12" r="5" />
+                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+              </svg>
+            ) : (
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+              </svg>
+            )}
+            <span className="text-xs font-semibold">
+              {theme === "dark" ? "Light" : "Dark"}
+            </span>
+          </button>
+        </div>
 
-        {/* Theme toggle */}
-        <button
-          onClick={toggle}
-          className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
-          aria-label="Toggle theme"
-        >
-          {theme === "dark" ? (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <circle cx="12" cy="12" r="5" />
-              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-            </svg>
-          ) : (
-            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-            </svg>
-          )}
-          <span className="text-xs font-semibold">
-            {theme === "dark" ? "Light" : "Dark"}
-          </span>
-        </button>
+        <div className="mx-1 mb-3 border-t border-surface-700/60" />
+
+        {/* User avatar */}
+        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
+            G
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="text-sm font-medium text-surface-200 truncate">Gaston</p>
+            <p className="text-[11px] text-surface-500 truncate">Free plan</p>
+          </div>
+        </div>
       </div>
     </div>
   );
@@ -256,7 +290,7 @@ export function AppSidebar() {
         />
       )}
 
-      {/* Sidebar — desktop: always visible, mobile: slide in/out */}
+      {/* Sidebar */}
       <aside
         className={`fixed top-0 left-0 z-50 h-full w-[220px] bg-surface-900 border-r border-surface-700/40 transition-transform duration-300 ease-in-out lg:translate-x-0 ${
           mobileOpen ? "translate-x-0" : "-translate-x-full"

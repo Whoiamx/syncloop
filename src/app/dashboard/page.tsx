@@ -59,14 +59,58 @@ export default function Home() {
 
   return (
     <div className="animate-fade-in">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="text-2xl font-bold text-surface-100 tracking-tight">
-          {t.projects}
+      {/* Hero — New Video Project */}
+      <div className="text-center py-10 mb-8">
+        <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-gradient-to-br from-brand-400 to-brand-600 mb-5 shadow-lg shadow-brand-500/20">
+          <svg width="24" height="24" viewBox="0 0 32 32" fill="none">
+            <rect x="4" y="4" width="24" height="18" rx="3" stroke="white" strokeWidth="2.2" fill="none"/>
+            <polygon points="13,8 13,18 21,13" fill="white"/>
+            <rect x="6" y="25" width="5" height="2.2" rx="1" fill="#6ee7b7"/>
+            <rect x="13" y="25" width="8" height="2.2" rx="1" fill="#6ee7b7"/>
+            <rect x="23" y="25" width="4" height="2.2" rx="1" fill="#6ee7b7"/>
+          </svg>
+        </div>
+        <h1 className="text-2xl font-bold text-surface-100 tracking-tight mb-2">
+          {t.newVideoProject}
         </h1>
-        <p className="text-sm text-surface-400 mt-1">
-          {t.manageProjects}
+        <p className="text-sm text-surface-400 max-w-md mx-auto mb-6">
+          {t.newVideoProjectDesc}
         </p>
+        <div className="flex items-center justify-center gap-3">
+          <Link
+            href="/projects/new"
+            className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-400 text-white px-6 py-3 rounded-xl text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand-500/25 active:scale-[0.97]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+              <polyline points="17 8 12 3 7 8" />
+              <line x1="12" y1="3" x2="12" y2="15" />
+            </svg>
+            {t.uploadVideo}
+          </Link>
+          <Link
+            href="/projects/new?mode=record"
+            className="inline-flex items-center gap-2 border border-surface-700 text-surface-200 hover:text-surface-100 hover:border-surface-600 hover:bg-surface-800/50 px-6 py-3 rounded-xl text-sm font-semibold transition-all active:scale-[0.97]"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <rect x="2" y="3" width="20" height="14" rx="2" />
+              <circle cx="12" cy="10" r="3" />
+              <path d="M2 20h20" />
+            </svg>
+            {t.recordScreen}
+          </Link>
+        </div>
+      </div>
+
+      {/* Separator */}
+      <div className="border-t border-surface-800/60 mb-8" />
+
+      {/* Projects header */}
+      <div className="flex items-center justify-between mb-5">
+        <h2 className="text-lg font-semibold text-surface-100">{t.projects}</h2>
+        <span className="text-xs text-surface-500">
+          {!loading && projects.length > 0 && `${projects.length} ${projects.length === 1 ? "project" : "projects"}`}
+        </span>
       </div>
 
       {loading ? (
