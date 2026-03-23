@@ -55,6 +55,7 @@ export async function POST(
       })),
       outputPath,
       style: project.subtitleStyle as Record<string, unknown> | undefined,
+      videoEdits: project.videoEdits as { trimStart?: number | null; trimEnd?: number | null; deletedSections?: { start: number; end: number }[] } | undefined,
     });
 
     // Update project status

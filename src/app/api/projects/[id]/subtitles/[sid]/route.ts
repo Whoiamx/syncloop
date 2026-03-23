@@ -70,3 +70,32 @@ export async function PATCH(
     );
   }
 }
+
+export async function DELETE(
+  _req: NextRequest,
+  { params }: { params: { id: string; sid: string } }
+) {
+  try {
+    const [deleted] = await db
+      .delete(subtitles)
+      .where(
+        and(
+          eq(subtitles.id, params.sid),
+          eq(subtitles.projectId, params.id)
+        )
+      )
+      .returning();
+
+    if (!deleted) {
+      return NextResponse.json({ error: "Subtitle not found" }, { status: 404 });
+    }
+
+    return NextResponse.json({ success: true });
+  } catch (error) {
+    console.error("Error deleting subtitle:", error);
+    return NextResponse.json(
+      { error: "Internal server error" },
+      { status: 500 }
+    );
+  }
+}

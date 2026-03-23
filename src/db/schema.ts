@@ -21,6 +21,20 @@ export const defaultSubtitleStyle = {
 
 export type SubtitleStyle = typeof defaultSubtitleStyle;
 
+export interface Marker {
+  id: string;
+  time: number;
+  shape: "circle" | "square";
+  color: string;
+  label?: string;
+}
+
+export interface VideoEdits {
+  trimStart: number | null;
+  trimEnd: number | null;
+  deletedSections: { start: number; end: number }[];
+}
+
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: varchar("title", { length: 500 }).notNull(),
@@ -28,6 +42,8 @@ export const projects = pgTable("projects", {
   template: varchar("template", { length: 50 }),
   language: varchar("language", { length: 10 }).default("en"),
   subtitleStyle: jsonb("subtitle_style").$type<SubtitleStyle>().default(defaultSubtitleStyle),
+  markers: jsonb("markers").$type<Marker[]>().default([]),
+  videoEdits: jsonb("video_edits").$type<VideoEdits>().default({ trimStart: null, trimEnd: null, deletedSections: [] }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

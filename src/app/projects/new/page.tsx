@@ -304,6 +304,16 @@ export default function NewProject() {
         throw new Error(data.error || t.failedUpload);
       }
 
+      // If server got duration 0 (common with WebM), send browser-detected duration as fallback
+      const uploadData = await uploadRes.json();
+      if ((!uploadData.duration || uploadData.duration <= 0) && videoDuration && videoDuration > 0) {
+        await fetch(`/api/videos/${uploadData.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ duration: videoDuration }),
+        }).catch(() => {}); // Non-critical, don't block navigation
+      }
+
       setProgress(t.done);
       router.push(`/projects/${project.id}`);
     } catch (err) {

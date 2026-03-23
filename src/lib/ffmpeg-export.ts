@@ -17,11 +17,18 @@ interface SubtitleStyleOptions {
   showBackground?: boolean;
 }
 
+export interface VideoEditsOptions {
+  trimStart?: number | null;
+  trimEnd?: number | null;
+  deletedSections?: { start: number; end: number }[];
+}
+
 export interface ExportOptions {
   videoPath: string;
   subtitles: SubtitleEntry[];
   outputPath: string;
   style?: SubtitleStyleOptions;
+  videoEdits?: VideoEditsOptions;
 }
 
 function escapeDrawText(text: string): string {
@@ -74,11 +81,29 @@ function buildDrawTextFilters(subtitles: SubtitleEntry[], style?: SubtitleStyleO
     .join(",");
 }
 
+function filterSubtitlesByEdits(
+  subtitles: SubtitleEntry[],
+  trimStart: number,
+  trimEnd: number,
+  deletedSections: { start: number; end: number }[]
+): SubtitleEntry[] {
+  return subtitles.filter((sub) => {
+    // Exclude subtitles outside trim range
+    if (sub.endTime <= trimStart || sub.startTime >= trimEnd) return false;
+    // Exclude subtitles inside deleted sections
+    for (const section of deletedSections) {
+      if (sub.startTime >= section.start && sub.endTime <= section.end) return false;
+    }
+    return true;
+  });
+}
+
 export async function exportVideoWithSubtitles({
   videoPath,
   subtitles,
   outputPath,
   style,
+  videoEdits,
 }: ExportOptions): Promise<{ outputPath: string; fileSize: number }> {
   // Ensure output directory exists
   await fs.mkdir(path.dirname(outputPath), { recursive: true });
@@ -90,20 +115,41 @@ export async function exportVideoWithSubtitles({
     // File doesn't exist, that's fine
   }
 
-  if (subtitles.length === 0) {
-    throw new Error("No subtitles to export");
+  const trimStart = videoEdits?.trimStart ?? 0;
+  const trimEnd = videoEdits?.trimEnd ?? Infinity;
+  const deletedSections = videoEdits?.deletedSections ?? [];
+
+  // Filter subtitles to only include those within the effective range
+  const effectiveSubtitles = filterSubtitlesByEdits(subtitles, trimStart, trimEnd, deletedSections);
+
+  if (effectiveSubtitles.length === 0 && subtitles.length > 0) {
+    // All subtitles filtered — still export but without subtitles
   }
 
-  const filterComplex = buildDrawTextFilters(subtitles, style);
+  const hasSubtitles = effectiveSubtitles.length > 0;
+  const filterComplex = hasSubtitles ? buildDrawTextFilters(effectiveSubtitles, style) : "";
 
   return new Promise((resolve, reject) => {
-    ffmpeg(videoPath)
-      .videoFilters(filterComplex)
+    const cmd = ffmpeg(videoPath);
+
+    // Apply trim (seek to start, limit duration)
+    if (trimStart > 0) {
+      cmd.setStartTime(trimStart);
+    }
+    if (trimEnd < Infinity) {
+      cmd.setDuration(trimEnd - trimStart);
+    }
+
+    if (hasSubtitles) {
+      cmd.videoFilters(filterComplex);
+    }
+
+    cmd
       .outputOptions([
         "-c:v", "libx264",
         "-preset", "fast",
         "-crf", "23",
-        "-c:a", "copy",
+        "-c:a", hasSubtitles ? "copy" : "copy",
         "-movflags", "+faststart",
       ])
       .output(outputPath)

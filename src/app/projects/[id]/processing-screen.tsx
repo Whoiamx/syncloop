@@ -16,6 +16,8 @@ interface ProcessingScreenProps {
   currentStep: ProcessingStep;
   projectTitle: string;
   t: Record<string, string>;
+  notifyEnabled: boolean;
+  onNotifyToggle: (enabled: boolean) => void;
 }
 
 const STEP_META: Record<ProcessingStep, { icon: React.ReactNode; tKey: string; descKey: string; number: string }> = {
@@ -147,7 +149,100 @@ function StepNode({
   );
 }
 
-export default function ProcessingScreen({ steps, currentStep, projectTitle, t }: ProcessingScreenProps) {
+// ─── Notification Toggle ─────────────────────────────────────────────
+function NotificationToggle({
+  enabled,
+  onToggle,
+  t,
+}: {
+  enabled: boolean;
+  onToggle: (enabled: boolean) => void;
+  t: Record<string, string>;
+}) {
+  const [supported, setSupported] = useState(false);
+  const [permissionState, setPermissionState] = useState<NotificationPermission>("default");
+
+  useEffect(() => {
+    if (typeof window !== "undefined" && "Notification" in window) {
+      setSupported(true);
+      setPermissionState(Notification.permission);
+    }
+  }, []);
+
+  if (!supported) return null;
+
+  const isBlocked = permissionState === "denied";
+
+  async function handleToggle() {
+    if (isBlocked) return;
+
+    if (enabled) {
+      onToggle(false);
+      return;
+    }
+
+    // Need to request permission
+    if (Notification.permission === "default") {
+      const result = await Notification.requestPermission();
+      setPermissionState(result);
+      if (result === "granted") {
+        onToggle(true);
+      }
+      // If denied, stays off — permissionState update will show blocked state
+      return;
+    }
+
+    if (Notification.permission === "granted") {
+      onToggle(true);
+    }
+  }
+
+  return (
+    <div className="flex flex-col items-center gap-1.5">
+      <button
+        onClick={handleToggle}
+        disabled={isBlocked}
+        className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl text-sm transition-all ${
+          isBlocked
+            ? "bg-surface-800/50 text-surface-600 cursor-not-allowed"
+            : enabled
+            ? "bg-brand-500/15 text-brand-300 border border-brand-500/25 hover:bg-brand-500/20"
+            : "bg-surface-800/60 text-surface-400 border border-surface-700/50 hover:bg-surface-700/60 hover:text-surface-300"
+        }`}
+        title={isBlocked ? (t.notificationsBlocked || "") : ""}
+      >
+        {/* Bell icon */}
+        <svg
+          width="15"
+          height="15"
+          viewBox="0 0 24 24"
+          fill={enabled ? "currentColor" : "none"}
+          stroke="currentColor"
+          strokeWidth="2"
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          className={isBlocked ? "opacity-40" : ""}
+        >
+          <path d="M18 8A6 6 0 006 8c0 7-3 9-3 9h18s-3-2-3-9" />
+          <path d="M13.73 21a2 2 0 01-3.46 0" />
+          {isBlocked && <line x1="1" y1="1" x2="23" y2="23" strokeWidth="2" />}
+        </svg>
+        {t.notifyWhenDone || "Notify me when done"}
+        {/* On/off indicator */}
+        {!isBlocked && (
+          <span className={`w-2 h-2 rounded-full transition-colors ${enabled ? "bg-brand-400" : "bg-surface-600"}`} />
+        )}
+      </button>
+      {isBlocked && (
+        <p className="text-xs text-surface-600 max-w-xs text-center">
+          {t.notificationsBlocked || "Notifications blocked. Enable them in your browser settings."}
+        </p>
+      )}
+    </div>
+  );
+}
+
+export default function ProcessingScreen({ steps, currentStep, projectTitle, t, notifyEnabled, onNotifyToggle }: ProcessingScreenProps) {
   const [progress, setProgress] = useState(0);
 
   useEffect(() => {
@@ -214,6 +309,13 @@ export default function ProcessingScreen({ steps, currentStep, projectTitle, t }
               }}
             />
           </div>
+        </div>
+      )}
+
+      {/* Notification toggle */}
+      {!hasError && (
+        <div className="w-full max-w-sm mb-8 flex justify-center">
+          <NotificationToggle enabled={notifyEnabled} onToggle={onNotifyToggle} t={t} />
         </div>
       )}
 

@@ -8,9 +8,10 @@ import { useI18n } from "@/lib/i18n-context";
 import Timeline from "./timeline";
 import SubtitleStylePanel from "./subtitle-style-panel";
 import ProcessingScreen, { type ProcessingStepInfo, type ProcessingStep } from "./processing-screen";
-import { defaultSubtitleStyle, type SubtitleStyle } from "@/db/schema";
+import { defaultSubtitleStyle, type SubtitleStyle, type Marker, type VideoEdits } from "@/db/schema";
 import { useToast } from "@/lib/toast-context";
 import { useConfirm } from "@/lib/confirm-dialog";
+import { useUndoRedo } from "@/lib/use-undo-redo";
 
 interface Video {
   id: string;
@@ -39,6 +40,8 @@ interface Project {
   template: string | null;
   language: string | null;
   subtitleStyle: SubtitleStyle | null;
+  markers: Marker[] | null;
+  videoEdits: VideoEdits | null;
   createdAt: string;
   video: Video | null;
   subtitles: Subtitle[];
@@ -329,6 +332,22 @@ export default function ProjectDetail() {
   const [isFullscreen, setIsFullscreen] = useState(false);
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(defaultSubtitleStyle);
   const [savingStyle, setSavingStyle] = useState(false);
+  const [styleOpen, setStyleOpen] = useState(false);
+  const [markers, setMarkers] = useState<Marker[]>([]);
+  const [videoEdits, setVideoEdits] = useState<VideoEdits>({ trimStart: null, trimEnd: null, deletedSections: [] });
+  const [savingProject, setSavingProject] = useState(false);
+
+  // Undo/redo for editor state
+  interface EditorSnapshot {
+    subtitles: Subtitle[];
+    markers: Marker[];
+    videoEdits: VideoEdits;
+  }
+  const undoRedo = useUndoRedo<EditorSnapshot>({
+    subtitles: [],
+    markers: [],
+    videoEdits: { trimStart: null, trimEnd: null, deletedSections: [] },
+  });
 
   // Auto-processing pipeline state
   const [isProcessing, setIsProcessing] = useState(false);
@@ -341,6 +360,8 @@ export default function ProjectDetail() {
   const [currentProcessingStep, setCurrentProcessingStep] = useState<ProcessingStep>("uploading");
   const [processingError, setProcessingError] = useState("");
   const processingStartedRef = useRef(false);
+  const [notifyOnComplete, setNotifyOnComplete] = useState(false);
+  const notifyRef = useRef(false);
 
   useEffect(() => {
     fetch(`/api/projects/${params.id}`)
@@ -353,12 +374,22 @@ export default function ProjectDetail() {
       .finally(() => setLoading(false));
   }, [params.id, t.projectNotFound]);
 
-  // Initialize subtitle style from project data
+  // Initialize subtitle style, markers, videoEdits from project data
   useEffect(() => {
     if (project?.subtitleStyle) {
       setSubtitleStyle({ ...defaultSubtitleStyle, ...project.subtitleStyle });
     }
-  }, [project?.subtitleStyle]);
+    if (project?.markers) setMarkers(project.markers);
+    if (project?.videoEdits) setVideoEdits(project.videoEdits);
+    if (project) {
+      undoRedo.replace({
+        subtitles: project.subtitles,
+        markers: project.markers ?? [],
+        videoEdits: project.videoEdits ?? { trimStart: null, trimEnd: null, deletedSections: [] },
+      });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project?.subtitleStyle, project?.markers, project?.videoEdits, project?.subtitles]);
 
   // Fullscreen change listener
   useEffect(() => {
@@ -368,6 +399,11 @@ export default function ProjectDetail() {
     document.addEventListener("fullscreenchange", onFsChange);
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
+
+  // Keep notifyRef in sync with state so async functions read the latest value
+  useEffect(() => {
+    notifyRef.current = notifyOnComplete;
+  }, [notifyOnComplete]);
 
   // Auto-processing pipeline: when project loads with status "uploaded" and no subtitles,
   // automatically extract frames + generate subtitles
@@ -433,6 +469,18 @@ export default function ProjectDetail() {
       if (projRes.ok) {
         const newProject = await projRes.json();
         setProject(newProject);
+      }
+
+      // Send browser notification if enabled (read from ref to avoid stale closure)
+      if (notifyRef.current && typeof window !== "undefined" && "Notification" in window && Notification.permission === "granted") {
+        const notification = new Notification("Syncloop", {
+          body: t.notificationSubtitlesReady || "Your subtitles are ready!",
+          icon: "/icon.svg",
+        });
+        notification.onclick = () => {
+          window.focus();
+          notification.close();
+        };
       }
 
       // Short delay to show completion before hiding
@@ -540,12 +588,90 @@ export default function ProjectDetail() {
 
   function handleSubtitleUpdated(updated: Subtitle) {
     if (!project) return;
-    setProject({
-      ...project,
-      subtitles: project.subtitles.map((s) =>
-        s.id === updated.id ? { ...s, text: updated.text, startTime: updated.startTime, endTime: updated.endTime } : s
-      ),
-    });
+    const newSubs = project.subtitles.map((s) =>
+      s.id === updated.id ? { ...s, text: updated.text, startTime: updated.startTime, endTime: updated.endTime } : s
+    );
+    setProject({ ...project, subtitles: newSubs });
+    undoRedo.set({ subtitles: newSubs, markers, videoEdits });
+  }
+
+  async function handleSubtitleDeleted(id: string) {
+    if (!project) return;
+    const newSubs = project.subtitles.filter((s) => s.id !== id);
+    setProject({ ...project, subtitles: newSubs });
+    undoRedo.set({ subtitles: newSubs, markers, videoEdits });
+    toast(t.subtitleDeleted || "Subtitle deleted");
+
+    try {
+      await fetch(`/api/projects/${params.id}/subtitles/${id}`, { method: "DELETE" });
+    } catch {
+      // Rollback
+      setProject((prev) => prev ? { ...prev, subtitles: project.subtitles } : prev);
+    }
+  }
+
+  function handleMarkersChange(newMarkers: Marker[]) {
+    setMarkers(newMarkers);
+    if (project) {
+      undoRedo.set({ subtitles: project.subtitles, markers: newMarkers, videoEdits });
+    }
+  }
+
+  function handleVideoEditsChange(newEdits: VideoEdits) {
+    setVideoEdits(newEdits);
+    if (project) {
+      undoRedo.set({ subtitles: project.subtitles, markers, videoEdits: newEdits });
+    }
+  }
+
+  function handleUndoRedo(snapshot: typeof undoRedo.current) {
+    if (!project) return;
+    setProject({ ...project, subtitles: snapshot.subtitles });
+    setMarkers(snapshot.markers);
+    setVideoEdits(snapshot.videoEdits);
+  }
+
+  function handleUndo() {
+    undoRedo.undo();
+  }
+
+  function handleRedo() {
+    undoRedo.redo();
+  }
+
+  // Keep UI in sync with undo/redo current
+  useEffect(() => {
+    if (project && undoRedo.current.subtitles.length > 0) {
+      const cur = undoRedo.current;
+      // Only update if different to avoid loops
+      if (cur.subtitles !== project.subtitles) {
+        setProject((prev) => prev ? { ...prev, subtitles: cur.subtitles } : prev);
+      }
+      if (cur.markers !== markers) setMarkers(cur.markers);
+      if (cur.videoEdits !== videoEdits) setVideoEdits(cur.videoEdits);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [undoRedo.current]);
+
+  async function handleSaveProject() {
+    if (!project) return;
+    setSavingProject(true);
+    try {
+      await fetch(`/api/projects/${params.id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          markers,
+          videoEdits,
+          subtitleStyle,
+        }),
+      });
+      toast(t.changesSaved || "Changes saved");
+    } catch {
+      toast("Save failed");
+    } finally {
+      setSavingProject(false);
+    }
   }
 
   async function handleExport() {
@@ -666,6 +792,8 @@ export default function ProjectDetail() {
           currentStep={currentProcessingStep}
           projectTitle={project.title}
           t={t}
+          notifyEnabled={notifyOnComplete}
+          onNotifyToggle={setNotifyOnComplete}
         />
         {processingError && (
           <div className="flex flex-col items-center mt-6 gap-3" role="alert">
@@ -789,9 +917,25 @@ export default function ProjectDetail() {
                 videoRef={videoRef}
                 activeSubId={activeSubId}
                 projectId={project.id}
+                markers={markers}
+                videoEdits={videoEdits}
+                videoFileName={project.video.fileName || "video"}
+                subtitleStyle={subtitleStyle}
+                canUndo={undoRedo.canUndo}
+                canRedo={undoRedo.canRedo}
+                onUndo={handleUndo}
+                onRedo={handleRedo}
                 onSubtitleUpdated={handleSubtitleUpdated}
+                onSubtitleDeleted={handleSubtitleDeleted}
                 onSeek={handleSeek}
                 onSelectSubtitle={(id) => setActiveSubId(id)}
+                onMarkersChange={handleMarkersChange}
+                onVideoEditsChange={handleVideoEditsChange}
+                onSave={handleSaveProject}
+                onExport={handleExport}
+                onStyleOpen={() => setStyleOpen(!styleOpen)}
+                saving={savingProject}
+                exporting={exporting}
                 t={t}
               />
             )}

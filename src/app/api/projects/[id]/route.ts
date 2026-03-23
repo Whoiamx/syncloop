@@ -59,11 +59,27 @@ const subtitleStyleSchema = z.object({
   animation: z.enum(["none", "fade", "slide", "typewriter"]).optional(),
 });
 
+const markerSchema = z.object({
+  id: z.string(),
+  time: z.number().min(0),
+  shape: z.enum(["circle", "square"]),
+  color: z.string(),
+  label: z.string().optional(),
+});
+
+const videoEditsSchema = z.object({
+  trimStart: z.number().min(0).nullable(),
+  trimEnd: z.number().min(0).nullable(),
+  deletedSections: z.array(z.object({ start: z.number(), end: z.number() })),
+});
+
 const updateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   template: z.enum(["tutorial", "product_demo"]).optional(),
   status: z.string().optional(),
   subtitleStyle: subtitleStyleSchema.optional(),
+  markers: z.array(markerSchema).optional(),
+  videoEdits: videoEditsSchema.optional(),
 });
 
 export async function PATCH(

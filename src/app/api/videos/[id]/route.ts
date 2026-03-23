@@ -2,8 +2,39 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
 import { videos } from "@/db/schema";
 import { eq } from "drizzle-orm";
+import { z } from "zod/v4";
 import fs from "fs";
 import path from "path";
+
+// PATCH /api/videos/[id] — Update video metadata (e.g., browser-detected duration)
+export async function PATCH(
+  req: NextRequest,
+  { params }: { params: { id: string } }
+) {
+  try {
+    const body = await req.json();
+    const schema = z.object({ duration: z.number().min(0.1).max(7200) });
+    const parsed = schema.safeParse(body);
+    if (!parsed.success) {
+      return NextResponse.json({ error: "Invalid input" }, { status: 400 });
+    }
+
+    const [updated] = await db
+      .update(videos)
+      .set({ duration: parsed.data.duration })
+      .where(eq(videos.id, params.id))
+      .returning();
+
+    if (!updated) {
+      return NextResponse.json({ error: "Not found" }, { status: 404 });
+    }
+
+    return NextResponse.json(updated);
+  } catch (error) {
+    console.error("Error updating video:", error);
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 });
+  }
+}
 
 // GET /api/videos/[id] — Stream video file
 export async function GET(
