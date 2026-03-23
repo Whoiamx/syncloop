@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import { Inter } from "next/font/google";
 import "./globals.css";
-import { NavBar } from "./nav-bar";
 import { I18nProvider } from "@/lib/i18n-context";
 import { ThemeProvider } from "@/lib/theme-context";
 import { ToastProvider } from "@/lib/toast-context";
 import { ConfirmProvider } from "@/lib/confirm-dialog";
+import { AppShell } from "./app-shell";
 
 const inter = Inter({ subsets: ["latin"] });
 
@@ -29,8 +29,7 @@ export default function RootLayout({
           <I18nProvider>
             <ToastProvider>
               <ConfirmProvider>
-                <NavBar />
-                <main className="max-w-6xl mx-auto px-6 py-8">{children}</main>
+                <AppShell>{children}</AppShell>
               </ConfirmProvider>
             </ToastProvider>
           </I18nProvider>

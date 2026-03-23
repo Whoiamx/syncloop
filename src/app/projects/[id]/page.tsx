@@ -808,13 +808,6 @@ export default function ProjectDetail() {
                     {project.subtitles.length}
                   </span>
                 </h2>
-                <span className="flex items-center gap-1.5 text-xs text-surface-500">
-                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                    <path d="M12 20h9" />
-                    <path d="M16.376 3.622a1 1 0 013.002 3.002L7.368 18.635a2 2 0 01-.855.506l-2.872.838.838-2.872a2 2 0 01.506-.855L16.376 3.622z" />
-                  </svg>
-                  {t.editSubtitle}
-                </span>
               </div>
               <div className="flex-1 overflow-y-auto max-h-[calc(100vh-340px)] space-y-1 pr-1 scrollbar-thin">
                 {project.subtitles.map((sub) => (

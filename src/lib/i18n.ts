@@ -228,6 +228,7 @@ const translations = {
     footerTerms: "Terms",
 
     dashboard: "Dashboard",
+    settings: "Settings",
   },
   es: {
     // Nav
@@ -454,6 +455,7 @@ const translations = {
     footerTerms: "Términos",
 
     dashboard: "Panel",
+    settings: "Configuración",
   },
   pt: {
     // Nav
@@ -680,6 +682,7 @@ const translations = {
     footerTerms: "Termos",
 
     dashboard: "Painel",
+    settings: "Configurações",
   },
 } as const;
 
