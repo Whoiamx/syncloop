@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useI18n } from "@/lib/i18n-context";
 import { useTheme } from "@/lib/theme-context";
 import type { Locale } from "@/lib/i18n";
@@ -13,78 +13,78 @@ const localeOptions: { value: Locale; label: string; flag: string }[] = [
   { value: "pt", label: "Português", flag: "🇧🇷" },
 ];
 
-function SidebarLanguageDropdown({
+function SidebarLanguageSelector({
   locale,
   setLocale,
 }: {
   locale: Locale;
   setLocale: (l: Locale) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const ref = useRef<HTMLDivElement>(null);
-  const current = localeOptions.find((o) => o.value === locale)!;
-
-  useEffect(() => {
-    function handleClick(e: MouseEvent) {
-      if (ref.current && !ref.current.contains(e.target as Node)) {
-        setOpen(false);
-      }
-    }
-    document.addEventListener("mousedown", handleClick);
-    return () => document.removeEventListener("mousedown", handleClick);
-  }, []);
-
   return (
-    <div ref={ref} className="relative">
-      <button
-        onClick={() => setOpen(!open)}
-        className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
-        aria-label="Select language"
-        aria-expanded={open}
-      >
-        <span className="text-base leading-none">{current.flag}</span>
-        <span className="text-xs font-semibold">{current.value.toUpperCase()}</span>
-        <svg
-          width="12"
-          height="12"
-          viewBox="0 0 24 24"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="2.5"
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          className={`ml-auto transition-transform duration-200 ${open ? "rotate-180" : ""}`}
+    <div className="flex items-center gap-1 p-1 rounded-lg bg-surface-800/80">
+      {localeOptions.map((opt) => (
+        <button
+          key={opt.value}
+          onClick={() => setLocale(opt.value)}
+          className={`flex-1 flex items-center justify-center gap-1.5 px-2 py-1.5 rounded-md text-xs font-medium transition-all duration-200 ${
+            locale === opt.value
+              ? "bg-surface-700 text-surface-100 shadow-sm"
+              : "text-surface-500 hover:text-surface-300"
+          }`}
+          aria-label={opt.label}
+          aria-pressed={locale === opt.value}
         >
-          <polyline points="6 9 12 15 18 9" />
-        </svg>
-      </button>
-
-      {open && (
-        <div className="absolute left-0 bottom-full mb-1.5 w-full rounded-xl border border-surface-700 bg-surface-800 shadow-xl shadow-black/30 overflow-hidden z-50">
-          {localeOptions.map((opt) => (
-            <button
-              key={opt.value}
-              onClick={() => {
-                setLocale(opt.value);
-                setOpen(false);
-              }}
-              className={`w-full flex items-center gap-3 px-3.5 py-2.5 text-sm transition-colors ${
-                locale === opt.value
-                  ? "bg-brand-500/10 text-brand-400"
-                  : "text-surface-300 hover:bg-surface-700/60 hover:text-surface-100"
-              }`}
-            >
-              <span className="text-base leading-none">{opt.flag}</span>
-              <span className="font-medium">{opt.label}</span>
-            </button>
-          ))}
-        </div>
-      )}
+          <span className="text-sm leading-none">{opt.flag}</span>
+          <span className="hidden sm:inline">{opt.value.toUpperCase()}</span>
+        </button>
+      ))}
     </div>
   );
 }
 
-type NavKey = "home" | "projects" | "exports" | "usage" | "settings";
+function ThemeToggle({
+  theme,
+  toggle,
+}: {
+  theme: string;
+  toggle: () => void;
+}) {
+  const isDark = theme === "dark";
+  return (
+    <button
+      onClick={toggle}
+      className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all group"
+      aria-label={`Switch to ${isDark ? "light" : "dark"} mode`}
+      aria-pressed={isDark}
+    >
+      <div className="relative w-9 h-5 rounded-full bg-surface-700 transition-colors group-hover:bg-surface-600 shrink-0">
+        <div
+          className={`absolute top-0.5 w-4 h-4 rounded-full transition-all duration-300 flex items-center justify-center ${
+            isDark
+              ? "left-0.5 bg-surface-400"
+              : "left-[calc(100%-18px)] bg-brand-400"
+          }`}
+        >
+          {isDark ? (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-surface-900">
+              <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
+            </svg>
+          ) : (
+            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="text-white">
+              <circle cx="12" cy="12" r="5" />
+              <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
+            </svg>
+          )}
+        </div>
+      </div>
+      <span className="text-xs font-medium">
+        {isDark ? "Dark" : "Light"}
+      </span>
+    </button>
+  );
+}
+
+type NavKey = "projects" | "exports" | "usage" | "settings";
 
 interface NavItem {
   labelKey: NavKey;
@@ -94,17 +94,6 @@ interface NavItem {
 }
 
 const navItems: NavItem[] = [
-  {
-    labelKey: "home",
-    href: "/home",
-    matchPaths: ["/home"],
-    icon: (
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
-        <path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z" />
-        <polyline points="9 22 9 12 15 12 15 22" />
-      </svg>
-    ),
-  },
   {
     labelKey: "projects",
     href: "/dashboard",
@@ -220,38 +209,23 @@ export function AppSidebar() {
       </nav>
 
       {/* Bottom section */}
-      <div className="px-3 pb-4 shrink-0">
-        <div className="mx-1 mb-3 border-t border-surface-700/60" />
+      <div className="px-3 pb-4 shrink-0 space-y-3">
+        <div className="mx-1 border-t border-surface-700/60" />
 
-        {/* Language & theme row */}
-        <div className="space-y-1 mb-3">
-          <SidebarLanguageDropdown locale={locale} setLocale={setLocale} />
-          <button
-            onClick={toggle}
-            className="w-full flex items-center gap-2.5 px-3 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800/60 transition-all"
-            aria-label="Toggle theme"
-          >
-            {theme === "dark" ? (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <circle cx="12" cy="12" r="5" />
-                <path d="M12 1v2M12 21v2M4.22 4.22l1.42 1.42M18.36 18.36l1.42 1.42M1 12h2M21 12h2M4.22 19.78l1.42-1.42M18.36 5.64l1.42-1.42" />
-              </svg>
-            ) : (
-              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z" />
-              </svg>
-            )}
-            <span className="text-xs font-semibold">
-              {theme === "dark" ? "Light" : "Dark"}
-            </span>
-          </button>
+        {/* Language selector */}
+        <div className="px-1">
+          <p className="text-[10px] font-semibold uppercase tracking-widest text-surface-600 mb-1.5 px-2">Language</p>
+          <SidebarLanguageSelector locale={locale} setLocale={setLocale} />
         </div>
 
-        <div className="mx-1 mb-3 border-t border-surface-700/60" />
+        {/* Theme toggle */}
+        <ThemeToggle theme={theme} toggle={toggle} />
+
+        <div className="mx-1 border-t border-surface-700/60" />
 
         {/* User avatar */}
-        <div className="flex items-center gap-3 px-3 py-2.5 rounded-lg">
-          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-bold shadow-md">
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-800/40 transition-colors cursor-pointer group">
+          <div className="w-8 h-8 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-xs font-bold shadow-md group-hover:shadow-brand-500/30 transition-shadow">
             G
           </div>
           <div className="flex-1 min-w-0">

@@ -227,23 +227,15 @@ const translations = {
     footerPrivacy: "Privacy",
     footerTerms: "Terms",
 
-    home: "Home",
     dashboard: "Dashboard",
     settings: "Settings",
     exports: "Exports",
     usage: "Usage",
+    createNewProject: "Create New Project",
     newVideoProject: "New Video Project",
     newVideoProjectDesc: "Upload a video or record your screen and let Syncloop generate subtitles automatically",
     uploadVideo: "Upload Video",
     recordScreen: "Record Screen",
-
-    // Home page
-    welcomeBack: "Welcome back",
-    homeDesc: "Here's an overview of your Syncloop workspace",
-    subtitlesGenerated: "Subtitles generated",
-    quickActions: "Quick actions",
-    uploadVideoDesc: "Upload an MP4 or WebM file",
-    recordScreenDesc2: "Record your screen directly from the browser",
 
     // Exports page
     exportsDesc: "View and download your exported videos",
@@ -486,23 +478,15 @@ const translations = {
     footerPrivacy: "Privacidad",
     footerTerms: "Términos",
 
-    home: "Inicio",
     dashboard: "Panel",
     settings: "Configuración",
     exports: "Exportaciones",
     usage: "Uso",
+    createNewProject: "Crear Nuevo Proyecto",
     newVideoProject: "Nuevo Proyecto de Video",
     newVideoProjectDesc: "Sube un video o graba tu pantalla y deja que Syncloop genere subtítulos automáticamente",
     uploadVideo: "Subir Video",
     recordScreen: "Grabar Pantalla",
-
-    // Home page
-    welcomeBack: "Bienvenido de nuevo",
-    homeDesc: "Resumen de tu espacio de trabajo en Syncloop",
-    subtitlesGenerated: "Subtítulos generados",
-    quickActions: "Acciones rápidas",
-    uploadVideoDesc: "Sube un archivo MP4 o WebM",
-    recordScreenDesc2: "Graba tu pantalla directamente desde el navegador",
 
     // Exports page
     exportsDesc: "Mira y descarga tus videos exportados",
@@ -745,23 +729,15 @@ const translations = {
     footerPrivacy: "Privacidade",
     footerTerms: "Termos",
 
-    home: "Início",
     dashboard: "Painel",
     settings: "Configurações",
     exports: "Exportações",
     usage: "Uso",
+    createNewProject: "Criar Novo Projeto",
     newVideoProject: "Novo Projeto de Vídeo",
     newVideoProjectDesc: "Envie um vídeo ou grave sua tela e deixe o Syncloop gerar legendas automaticamente",
     uploadVideo: "Enviar Vídeo",
     recordScreen: "Gravar Tela",
-
-    // Home page
-    welcomeBack: "Bem-vindo de volta",
-    homeDesc: "Visão geral do seu espaço de trabalho no Syncloop",
-    subtitlesGenerated: "Legendas geradas",
-    quickActions: "Ações rápidas",
-    uploadVideoDesc: "Envie um arquivo MP4 ou WebM",
-    recordScreenDesc2: "Grave sua tela diretamente do navegador",
 
     // Exports page
     exportsDesc: "Veja e baixe seus vídeos exportados",
