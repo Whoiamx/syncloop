@@ -39,6 +39,8 @@ function LanguageDropdown({
       <button
         onClick={() => setOpen(!open)}
         className="flex items-center gap-1.5 px-2.5 py-2 rounded-lg text-sm text-surface-400 hover:text-surface-100 hover:bg-surface-800/60 transition-all"
+        aria-label="Select language"
+        aria-expanded={open}
       >
         <span className="text-base leading-none">{current.flag}</span>
         <span className="text-xs font-semibold">{current.value.toUpperCase()}</span>

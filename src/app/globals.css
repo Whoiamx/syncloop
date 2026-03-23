@@ -38,6 +38,47 @@
   --color-surface-100: #161412;
 }
 
+/* Focus rings — visible keyboard navigation */
+:focus-visible {
+  outline: 2px solid var(--color-brand-400);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Toast animation */
+@keyframes toast-in {
+  from { opacity: 0; transform: translateY(12px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+@keyframes toast-out {
+  from { opacity: 1; transform: translateY(0) scale(1); }
+  to { opacity: 0; transform: translateY(12px) scale(0.96); }
+}
+.animate-toast-in {
+  animation: toast-in 0.3s ease-out both;
+}
+.animate-toast-out {
+  animation: toast-out 0.25s ease-in both;
+}
+
+/* Skeleton pulse */
+@keyframes skeleton-pulse {
+  0%, 100% { opacity: 0.4; }
+  50% { opacity: 0.8; }
+}
+.animate-skeleton {
+  animation: skeleton-pulse 1.8s ease-in-out infinite;
+}
+
+/* Save flash */
+@keyframes save-flash {
+  0% { background-color: rgba(16, 185, 129, 0.12); }
+  100% { background-color: transparent; }
+}
+.animate-save-flash {
+  animation: save-flash 1s ease-out both;
+}
+
 /* Smooth scrollbar */
 ::-webkit-scrollbar {
   width: 6px;

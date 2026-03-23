@@ -16,6 +16,7 @@ const translations = {
     createProject: "Create Project",
     noVideoUploaded: "No video uploaded",
     deleteConfirm: "Delete this project and all its data?",
+    cancel: "Cancel",
 
     // New project
     backToProjects: "Back to projects",
@@ -115,6 +116,26 @@ const translations = {
     previewText: "Preview subtitle text",
     saveStyle: "Save Style",
     saving: "Saving…",
+
+    // Processing screen
+    processingUpload: "Uploading video",
+    processingUploadDesc: "Transferring your video securely",
+    processingExtract: "Extracting frames",
+    processingExtractDesc: "Capturing key moments from your video",
+    processingAnalyze: "Analyzing video",
+    processingAnalyzeDesc: "AI is reviewing your video content",
+    processingGenerate: "Generating subtitles",
+    processingGenerateDesc: "Creating time-aligned subtitles with AI",
+    processingCompleted: "Completed",
+    processingInProgress: "In Progress",
+    processingError: "Error",
+    processingAnalyzed: "analyzed",
+    processingVideoSubtitle: "Syncloop is analyzing your video content...",
+    processingStepOf: "Step {current} of {total}",
+    processingFailed: "Processing failed. Please try again.",
+    retryProcessing: "Retry",
+    subtitleSaved: "Subtitle saved",
+    styleSaved: "Style saved",
 
     // Export
     exportVideo: "Export Video",
@@ -221,6 +242,7 @@ const translations = {
     createProject: "Crear Proyecto",
     noVideoUploaded: "Sin video subido",
     deleteConfirm: "¿Eliminar este proyecto y todos sus datos?",
+    cancel: "Cancelar",
 
     // New project
     backToProjects: "Volver a proyectos",
@@ -320,6 +342,26 @@ const translations = {
     previewText: "Texto de vista previa",
     saveStyle: "Guardar Estilo",
     saving: "Guardando…",
+
+    // Processing screen
+    processingUpload: "Subiendo video",
+    processingUploadDesc: "Transfiriendo tu video de forma segura",
+    processingExtract: "Extrayendo frames",
+    processingExtractDesc: "Capturando momentos clave de tu video",
+    processingAnalyze: "Analizando video",
+    processingAnalyzeDesc: "La IA está revisando el contenido de tu video",
+    processingGenerate: "Generando subtítulos",
+    processingGenerateDesc: "Creando subtítulos sincronizados con IA",
+    processingCompleted: "Completado",
+    processingInProgress: "En Progreso",
+    processingError: "Error",
+    processingAnalyzed: "analizado",
+    processingVideoSubtitle: "Syncloop está analizando el contenido de tu video...",
+    processingStepOf: "Paso {current} de {total}",
+    processingFailed: "El procesamiento falló. Intenta de nuevo.",
+    retryProcessing: "Reintentar",
+    subtitleSaved: "Subtítulo guardado",
+    styleSaved: "Estilo guardado",
 
     // Export
     exportVideo: "Exportar Video",
@@ -426,6 +468,7 @@ const translations = {
     createProject: "Criar Projeto",
     noVideoUploaded: "Sem vídeo enviado",
     deleteConfirm: "Excluir este projeto e todos os seus dados?",
+    cancel: "Cancelar",
 
     // New project
     backToProjects: "Voltar aos projetos",
@@ -525,6 +568,26 @@ const translations = {
     previewText: "Texto de visualização",
     saveStyle: "Salvar Estilo",
     saving: "Salvando…",
+
+    // Processing screen
+    processingUpload: "Enviando vídeo",
+    processingUploadDesc: "Transferindo seu vídeo com segurança",
+    processingExtract: "Extraindo frames",
+    processingExtractDesc: "Capturando momentos-chave do seu vídeo",
+    processingAnalyze: "Analisando vídeo",
+    processingAnalyzeDesc: "A IA está revisando o conteúdo do seu vídeo",
+    processingGenerate: "Gerando legendas",
+    processingGenerateDesc: "Criando legendas sincronizadas com IA",
+    processingCompleted: "Concluído",
+    processingInProgress: "Em Progresso",
+    processingError: "Erro",
+    processingAnalyzed: "analisado",
+    processingVideoSubtitle: "Syncloop está analisando o conteúdo do seu vídeo...",
+    processingStepOf: "Passo {current} de {total}",
+    processingFailed: "O processamento falhou. Tente novamente.",
+    retryProcessing: "Tentar novamente",
+    subtitleSaved: "Legenda salva",
+    styleSaved: "Estilo salvo",
 
     // Export
     exportVideo: "Exportar Vídeo",

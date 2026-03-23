@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { formatDuration, formatFileSize } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
+import { useConfirm } from "@/lib/confirm-dialog";
 
 interface Project {
   id: string;
@@ -31,6 +32,7 @@ const statusStyles: Record<string, string> = {
 
 export default function Home() {
   const { t } = useI18n();
+  const { confirm } = useConfirm();
   const [projects, setProjects] = useState<Project[]>([]);
   const [loading, setLoading] = useState(true);
 
@@ -43,7 +45,14 @@ export default function Home() {
   }, []);
 
   async function deleteProject(id: string) {
-    if (!confirm(t.deleteConfirm)) return;
+    const ok = await confirm({
+      title: t.deleteProject,
+      message: t.deleteConfirm,
+      confirmText: t.deleteProject,
+      cancelText: t.cancel || "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/projects/${id}`, { method: "DELETE" });
     setProjects((prev) => prev.filter((p) => p.id !== id));
   }
@@ -61,12 +70,24 @@ export default function Home() {
       </div>
 
       {loading ? (
-        <div className="flex items-center gap-3 text-surface-400 py-16 justify-center">
-          <svg className="animate-spin h-5 w-5 text-brand-400" viewBox="0 0 24 24" fill="none">
-            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
-          </svg>
-          {t.loadingProjects}
+        <div className="grid gap-3">
+          {[1, 2, 3].map((i) => (
+            <div key={i} className="rounded-xl border border-surface-800 bg-surface-900/50 p-4">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-3 mb-3">
+                    <div className="h-5 w-40 bg-surface-800 rounded-md animate-skeleton" />
+                    <div className="h-5 w-16 bg-surface-800 rounded-full animate-skeleton" />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="h-3.5 w-14 bg-surface-800 rounded animate-skeleton" />
+                    <div className="h-3.5 w-20 bg-surface-800 rounded animate-skeleton" />
+                    <div className="h-3.5 w-16 bg-surface-800 rounded animate-skeleton" />
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
         </div>
       ) : projects.length === 0 ? (
         <div className="text-center py-20">
@@ -95,7 +116,7 @@ export default function Home() {
             <Link
               key={project.id}
               href={`/projects/${project.id}`}
-              className="group block rounded-xl border border-surface-800 bg-surface-900/50 hover:bg-surface-800/60 hover:border-surface-700 transition-all p-4"
+              className="group block rounded-xl border border-surface-800 bg-surface-900/50 hover:bg-surface-800/60 hover:border-surface-700 hover:-translate-y-0.5 hover:shadow-lg hover:shadow-black/10 transition-all p-4"
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="flex-1 min-w-0">
@@ -104,14 +125,14 @@ export default function Home() {
                       {project.title}
                     </h2>
                     <span
-                      className={`shrink-0 px-2 py-0.5 rounded-full text-[11px] font-medium ${
+                      className={`shrink-0 px-2.5 py-1 rounded-full text-xs font-medium ${
                         statusStyles[project.status] || statusStyles.draft
                       }`}
                     >
                       {project.status}
                     </span>
                     {project.template && (
-                      <span className="shrink-0 px-2 py-0.5 rounded-full bg-surface-800 text-[11px] font-medium text-surface-400">
+                      <span className="shrink-0 px-2.5 py-1 rounded-full bg-surface-800 text-xs font-medium text-surface-400">
                         {project.template}
                       </span>
                     )}
@@ -144,6 +165,7 @@ export default function Home() {
                   }}
                   className="opacity-0 group-hover:opacity-100 p-1.5 rounded-lg hover:bg-red-500/10 text-surface-500 hover:text-red-400 transition-all"
                   title={t.deleteProject}
+                  aria-label={t.deleteProject}
                 >
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />

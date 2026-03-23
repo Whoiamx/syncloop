@@ -358,12 +358,14 @@ export default function Timeline({
           {/* Snap toggle */}
           <button
             onClick={() => setSnapEnabled(!snapEnabled)}
-            className={`flex items-center gap-1.5 text-[11px] px-2 py-1 rounded-md transition-all ${
+            className={`flex items-center gap-1.5 text-xs px-2 py-1 rounded-md transition-all ${
               snapEnabled
                 ? "bg-brand-500/15 text-brand-400 border border-brand-500/25"
                 : "text-surface-500 hover:text-surface-300 hover:bg-surface-800"
             }`}
             title={t.snapToGrid || "Snap to grid (0.5s)"}
+            aria-label={t.snapToGrid || "Snap to grid"}
+            aria-pressed={snapEnabled}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
               <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
@@ -377,10 +379,11 @@ export default function Timeline({
             disabled={zoom <= 1}
             className="w-6 h-6 flex items-center justify-center rounded text-surface-400 hover:text-surface-200 hover:bg-surface-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             title={t.zoomOut || "Zoom out"}
+            aria-label={t.zoomOut || "Zoom out"}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M5 12h14" /></svg>
           </button>
-          <span className="text-[11px] text-surface-500 font-mono tabular-nums w-8 text-center">
+          <span className="text-xs text-surface-500 font-mono tabular-nums w-8 text-center">
             {zoom.toFixed(1)}x
           </span>
           <button
@@ -388,6 +391,7 @@ export default function Timeline({
             disabled={zoom >= maxZoom}
             className="w-6 h-6 flex items-center justify-center rounded text-surface-400 hover:text-surface-200 hover:bg-surface-800 disabled:opacity-30 disabled:cursor-not-allowed transition-all"
             title={t.zoomIn || "Zoom in"}
+            aria-label={t.zoomIn || "Zoom in"}
           >
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
           </button>

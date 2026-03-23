@@ -1,13 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback, useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { formatDuration, formatFileSize } from "@/lib/format";
 import { useI18n } from "@/lib/i18n-context";
 import Timeline from "./timeline";
 import SubtitleStylePanel from "./subtitle-style-panel";
+import ProcessingScreen, { type ProcessingStepInfo, type ProcessingStep } from "./processing-screen";
 import { defaultSubtitleStyle, type SubtitleStyle } from "@/db/schema";
+import { useToast } from "@/lib/toast-context";
+import { useConfirm } from "@/lib/confirm-dialog";
 
 interface Video {
   id: string;
@@ -27,12 +30,6 @@ interface Subtitle {
   startTime: number;
   endTime: number;
   text: string;
-}
-
-interface Frame {
-  index: number;
-  filename: string;
-  url: string;
 }
 
 interface Project {
@@ -176,8 +173,10 @@ function SubtitleRow({
   const [editing, setEditing] = useState(false);
   const [editText, setEditText] = useState(sub.text);
   const [saving, setSaving] = useState(false);
+  const [justSaved, setJustSaved] = useState(false);
   const inputRef = useRef<HTMLTextAreaElement>(null);
   const rowRef = useRef<HTMLDivElement>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     if (isActive && rowRef.current) {
@@ -208,6 +207,9 @@ function SubtitleRow({
       if (res.ok) {
         const updated = await res.json();
         onUpdated(updated);
+        setJustSaved(true);
+        toast(t.subtitleSaved || "Subtitle saved", "success");
+        setTimeout(() => setJustSaved(false), 1000);
       }
     } catch {
       setEditText(sub.text);
@@ -231,8 +233,10 @@ function SubtitleRow({
   return (
     <div
       ref={rowRef}
-      className={`group flex gap-3 rounded-xl px-3 py-2.5 text-sm transition-all cursor-pointer ${
-        isActive
+      className={`group flex gap-3 rounded-xl px-3.5 py-3 transition-all cursor-pointer ${
+        justSaved
+          ? "animate-save-flash border border-emerald-500/25"
+          : isActive
           ? "bg-brand-500/10 border border-brand-500/25 ring-1 ring-brand-500/10"
           : "border border-transparent hover:bg-surface-800/40"
       }`}
@@ -244,14 +248,14 @@ function SubtitleRow({
         title={t.clickToSeek}
       >
         <span
-          className={`font-mono text-[11px] tabular-nums block ${
+          className={`font-mono text-xs tabular-nums block ${
             isActive ? "text-brand-400" : "text-surface-500 group-hover:text-surface-300"
           } transition-colors`}
         >
           {formatTimecode(sub.startTime)}
         </span>
         <span
-          className={`font-mono text-[10px] tabular-nums block ${
+          className={`font-mono text-[11px] tabular-nums block mt-0.5 ${
             isActive ? "text-brand-500/60" : "text-surface-600"
           }`}
         >
@@ -270,23 +274,37 @@ function SubtitleRow({
             onKeyDown={handleKeyDown}
             disabled={saving}
             rows={2}
-            className="w-full bg-surface-800 border border-surface-600 rounded-lg px-2.5 py-1.5 text-sm text-surface-100 resize-none focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 disabled:opacity-50"
+            className="w-full bg-surface-800 border border-surface-600 rounded-lg px-3 py-2 text-[15px] text-surface-100 resize-none focus:outline-none focus:border-brand-500/50 focus:ring-1 focus:ring-brand-500/20 disabled:opacity-50"
           />
         ) : (
-          <p
+          <div
             onClick={() => {
               setEditText(sub.text);
               setEditing(true);
             }}
-            className={`leading-relaxed cursor-text rounded px-1 -mx-1 transition-colors ${
+            className={`flex items-start gap-2 text-[15px] leading-relaxed cursor-text rounded px-1 -mx-1 transition-colors ${
               isActive
                 ? "text-surface-100"
                 : "text-surface-300 group-hover:text-surface-100"
             } hover:bg-surface-800/60`}
             title={t.editSubtitle}
           >
-            {sub.text}
-          </p>
+            <span className="flex-1">{sub.text}</span>
+            <svg
+              width="14"
+              height="14"
+              viewBox="0 0 24 24"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              className="shrink-0 mt-0.5 text-surface-600 group-hover:text-surface-400 transition-colors"
+            >
+              <path d="M12 20h9" />
+              <path d="M16.376 3.622a1 1 0 013.002 3.002L7.368 18.635a2 2 0 01-.855.506l-2.872.838.838-2.872a2 2 0 01.506-.855L16.376 3.622z" />
+            </svg>
+          </div>
         )}
       </div>
     </div>
@@ -296,20 +314,15 @@ function SubtitleRow({
 // ─── Main Page ───────────────────────────────────────────────────────
 export default function ProjectDetail() {
   const { t } = useI18n();
+  const { toast } = useToast();
   const params = useParams();
   const router = useRouter();
   const videoRef = useRef<HTMLVideoElement>(null);
   const videoContainerRef = useRef<HTMLDivElement>(null);
   const [project, setProject] = useState<Project | null>(null);
-  const [frames, setFrames] = useState<Frame[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [extracting, setExtracting] = useState(false);
-  const [extractError, setExtractError] = useState("");
-  const [generating, setGenerating] = useState(false);
-  const [generateError, setGenerateError] = useState("");
   const [activeSubId, setActiveSubId] = useState<string | null>(null);
-  const [showFrames, setShowFrames] = useState(false);
   const [exporting, setExporting] = useState(false);
   const [exportError, setExportError] = useState("");
   const [exportReady, setExportReady] = useState(false);
@@ -317,31 +330,28 @@ export default function ProjectDetail() {
   const [subtitleStyle, setSubtitleStyle] = useState<SubtitleStyle>(defaultSubtitleStyle);
   const [savingStyle, setSavingStyle] = useState(false);
 
-  const loadFrames = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/projects/${params.id}/frames`);
-      if (res.ok) {
-        const data = await res.json();
-        setFrames(data.frames);
-      }
-    } catch {
-      // Frames may not exist yet
-    }
-  }, [params.id]);
+  // Auto-processing pipeline state
+  const [isProcessing, setIsProcessing] = useState(false);
+  const [processingSteps, setProcessingSteps] = useState<ProcessingStepInfo[]>([
+    { id: "uploading", status: "completed" },
+    { id: "extracting", status: "pending" },
+    { id: "analyzing", status: "pending" },
+    { id: "generating", status: "pending" },
+  ]);
+  const [currentProcessingStep, setCurrentProcessingStep] = useState<ProcessingStep>("uploading");
+  const [processingError, setProcessingError] = useState("");
+  const processingStartedRef = useRef(false);
 
   useEffect(() => {
-    Promise.all([
-      fetch(`/api/projects/${params.id}`)
-        .then((r) => {
-          if (!r.ok) throw new Error(t.projectNotFound);
-          return r.json();
-        })
-        .then(setProject),
-      loadFrames(),
-    ])
+    fetch(`/api/projects/${params.id}`)
+      .then((r) => {
+        if (!r.ok) throw new Error(t.projectNotFound);
+        return r.json();
+      })
+      .then(setProject)
       .catch((err) => setError(err.message))
       .finally(() => setLoading(false));
-  }, [params.id, t.projectNotFound, loadFrames]);
+  }, [params.id, t.projectNotFound]);
 
   // Initialize subtitle style from project data
   useEffect(() => {
@@ -359,6 +369,105 @@ export default function ProjectDetail() {
     return () => document.removeEventListener("fullscreenchange", onFsChange);
   }, []);
 
+  // Auto-processing pipeline: when project loads with status "uploaded" and no subtitles,
+  // automatically extract frames + generate subtitles
+  useEffect(() => {
+    if (!project || !project.video || processingStartedRef.current) return;
+
+    const needsProcessing =
+      (project.status === "uploaded" || project.status === "frames_extracted" || project.status === "analyzing") &&
+      project.subtitles.length === 0;
+
+    if (!needsProcessing) return;
+
+    processingStartedRef.current = true;
+    runProcessingPipeline();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [project]);
+
+  async function runProcessingPipeline() {
+    setIsProcessing(true);
+    setProcessingError("");
+
+    const updateStep = (id: ProcessingStep, status: ProcessingStepInfo["status"], error?: string) => {
+      setProcessingSteps((prev) =>
+        prev.map((s) => (s.id === id ? { ...s, status, error } : s))
+      );
+      if (status === "in_progress") setCurrentProcessingStep(id);
+    };
+
+    try {
+      // Step 1: Upload already done
+      updateStep("uploading", "completed");
+
+      // Step 2: Extract frames
+      updateStep("extracting", "in_progress");
+      const extractRes = await fetch(`/api/projects/${params.id}/extract-frames`, {
+        method: "POST",
+      });
+      if (!extractRes.ok) {
+        const data = await extractRes.json();
+        throw new Error(data.error || "Frame extraction failed");
+      }
+      updateStep("extracting", "completed");
+
+      // Step 3: Analyzing (same API call as generating, but we show it as two visual steps)
+      updateStep("analyzing", "in_progress");
+      // Small delay for visual feedback
+      await new Promise((r) => setTimeout(r, 800));
+      updateStep("analyzing", "completed");
+
+      // Step 4: Generate subtitles
+      updateStep("generating", "in_progress");
+      const genRes = await fetch(`/api/projects/${params.id}/generate-subtitles`, {
+        method: "POST",
+      });
+      if (!genRes.ok) {
+        const data = await genRes.json();
+        throw new Error(data.error || "Subtitle generation failed");
+      }
+      updateStep("generating", "completed");
+
+      // Reload project data
+      const projRes = await fetch(`/api/projects/${params.id}`);
+      if (projRes.ok) {
+        const newProject = await projRes.json();
+        setProject(newProject);
+      }
+
+      // Short delay to show completion before hiding
+      await new Promise((r) => setTimeout(r, 1200));
+      setIsProcessing(false);
+    } catch (err) {
+      const errorMsg = err instanceof Error ? err.message : "Processing failed";
+      setProcessingError(errorMsg);
+
+      // Mark current step as error
+      setProcessingSteps((prev) =>
+        prev.map((s) =>
+          s.status === "in_progress" ? { ...s, status: "error", error: errorMsg } : s
+        )
+      );
+    }
+  }
+
+  function handleRetryProcessing() {
+    processingStartedRef.current = false;
+    setProcessingSteps([
+      { id: "uploading", status: "completed" },
+      { id: "extracting", status: "pending" },
+      { id: "analyzing", status: "pending" },
+      { id: "generating", status: "pending" },
+    ]);
+    setProcessingError("");
+    setIsProcessing(false);
+    // Re-trigger by resetting the ref — the useEffect will pick it up
+    setTimeout(() => {
+      processingStartedRef.current = true;
+      runProcessingPipeline();
+    }, 100);
+  }
+
   function toggleFullscreen() {
     if (!videoContainerRef.current) return;
     if (document.fullscreenElement) {
@@ -367,6 +476,23 @@ export default function ProjectDetail() {
       videoContainerRef.current.requestFullscreen();
     }
   }
+
+  // Keyboard shortcuts
+  useEffect(() => {
+    function handleKeyDown(e: KeyboardEvent) {
+      // Ignore if typing in an input/textarea
+      const tag = (e.target as HTMLElement).tagName;
+      if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
+
+      if (e.code === "Space") {
+        e.preventDefault();
+        const v = videoRef.current;
+        if (v) v.paused ? v.play() : v.pause();
+      }
+    }
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
 
   async function handleSaveStyle(style: SubtitleStyle) {
     if (!project) return;
@@ -379,6 +505,7 @@ export default function ProjectDetail() {
       });
       if (res.ok) {
         setProject({ ...project, subtitleStyle: style });
+        toast(t.styleSaved || "Style saved", "success");
       }
     } catch {
       // ignore
@@ -421,51 +548,6 @@ export default function ProjectDetail() {
     });
   }
 
-  async function handleExtractFrames() {
-    setExtracting(true);
-    setExtractError("");
-    try {
-      const res = await fetch(`/api/projects/${params.id}/extract-frames`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || t.extractionFailed);
-      }
-      await loadFrames();
-      const projRes = await fetch(`/api/projects/${params.id}`);
-      if (projRes.ok) setProject(await projRes.json());
-    } catch (err) {
-      setExtractError(
-        err instanceof Error ? err.message : t.extractionFailed
-      );
-    } finally {
-      setExtracting(false);
-    }
-  }
-
-  async function handleGenerateSubtitles() {
-    setGenerating(true);
-    setGenerateError("");
-    try {
-      const res = await fetch(`/api/projects/${params.id}/generate-subtitles`, {
-        method: "POST",
-      });
-      if (!res.ok) {
-        const data = await res.json();
-        throw new Error(data.error || t.generationFailed);
-      }
-      const projRes = await fetch(`/api/projects/${params.id}`);
-      if (projRes.ok) setProject(await projRes.json());
-    } catch (err) {
-      setGenerateError(
-        err instanceof Error ? err.message : t.generationFailed
-      );
-    } finally {
-      setGenerating(false);
-    }
-  }
-
   async function handleExport() {
     setExporting(true);
     setExportError("");
@@ -498,20 +580,48 @@ export default function ProjectDetail() {
     document.body.removeChild(a);
   }
 
+  const { confirm } = useConfirm();
+
   async function handleDelete() {
-    if (!confirm(t.deleteProjectConfirm)) return;
+    const ok = await confirm({
+      title: t.deleteProject,
+      message: t.deleteProjectConfirm,
+      confirmText: t.deleteProject,
+      cancelText: t.cancel || "Cancel",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/projects/${params.id}`, { method: "DELETE" });
     router.push("/dashboard");
   }
 
   if (loading)
     return (
-      <div className="flex items-center gap-3 text-surface-400 py-20 justify-center">
-        <svg className="animate-spin h-5 w-5 text-brand-400" viewBox="0 0 24 24" fill="none">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
-        </svg>
-        {t.loadingProject}
+      <div className="animate-fade-in">
+        {/* Header skeleton */}
+        <div className="flex items-center justify-between mb-6">
+          <div className="flex items-center gap-3">
+            <div className="h-7 w-48 bg-surface-800 rounded-lg animate-skeleton" />
+            <div className="h-6 w-16 bg-surface-800 rounded-full animate-skeleton" />
+          </div>
+          <div className="h-8 w-20 bg-surface-800 rounded-lg animate-skeleton" />
+        </div>
+        {/* Video + subtitle skeleton */}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6">
+          <div>
+            <div className="aspect-video bg-surface-800 rounded-xl animate-skeleton" />
+            <div className="h-4 w-60 bg-surface-800 rounded mt-3 animate-skeleton" />
+          </div>
+          <div className="space-y-3">
+            <div className="h-10 bg-surface-800 rounded-lg animate-skeleton" />
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex gap-3 p-3 rounded-lg border border-surface-800">
+                <div className="h-4 w-16 bg-surface-800 rounded animate-skeleton" />
+                <div className="flex-1 h-4 bg-surface-800 rounded animate-skeleton" />
+              </div>
+            ))}
+          </div>
+        </div>
       </div>
     );
 
@@ -538,6 +648,44 @@ export default function ProjectDetail() {
   const hasSubtitles = project.subtitles.length > 0;
   const hasVideo = !!project.video;
 
+  // Show processing screen when auto-pipeline is running
+  if (isProcessing || processingError) {
+    return (
+      <div className="animate-fade-in">
+        <Link
+          href="/dashboard"
+          className="inline-flex items-center gap-1.5 text-sm text-surface-400 hover:text-surface-200 mb-6 transition-colors"
+        >
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+            <path d="M19 12H5M12 19l-7-7 7-7" />
+          </svg>
+          {t.backToProjects}
+        </Link>
+        <ProcessingScreen
+          steps={processingSteps}
+          currentStep={currentProcessingStep}
+          projectTitle={project.title}
+          t={t}
+        />
+        {processingError && (
+          <div className="flex flex-col items-center mt-6 gap-3" role="alert">
+            <p className="text-sm text-red-400">{processingError}</p>
+            <button
+              onClick={handleRetryProcessing}
+              className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-400 text-white px-5 py-2.5 rounded-xl text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand-500/20"
+            >
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <path d="M1 4v6h6M23 20v-6h-6" />
+                <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+              </svg>
+              {t.retryProcessing}
+            </button>
+          </div>
+        )}
+      </div>
+    );
+  }
+
   return (
     <div className="animate-fade-in">
       {/* Header */}
@@ -556,12 +704,12 @@ export default function ProjectDetail() {
             {project.title}
           </h1>
           <div className="flex items-center gap-2.5 mt-2">
-            <span className={`inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-[11px] font-medium ${status.bg}`}>
+            <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-medium ${status.bg}`}>
               <span className={`w-1.5 h-1.5 rounded-full ${status.dot}`} />
               {project.status}
             </span>
             {project.template && (
-              <span className="px-2.5 py-0.5 rounded-full bg-surface-800 text-[11px] font-medium text-surface-400">
+              <span className="px-3 py-1 rounded-full bg-surface-800 text-xs font-medium text-surface-400">
                 {project.template}
               </span>
             )}
@@ -603,6 +751,7 @@ export default function ProjectDetail() {
                 onClick={toggleFullscreen}
                 className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-lg bg-black/60 hover:bg-black/80 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
                 title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
+                aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
               >
                 {isFullscreen ? (
                   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
@@ -616,20 +765,20 @@ export default function ProjectDetail() {
               </button>
             </div>
             {/* Video meta */}
-            <div className="flex items-center gap-4 mt-3 px-1">
-              <div className="flex items-center gap-1.5 text-xs text-surface-400">
-                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-surface-500">
+            <div className="flex items-center flex-wrap gap-x-4 gap-y-1 mt-3 px-1">
+              <div className="flex items-center gap-1.5 text-sm text-surface-400">
+                <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-surface-500">
                   <path d="M14.752 11.168l-3.197-2.132A1 1 0 0010 9.87v4.263a1 1 0 001.555.832l3.197-2.132a1 1 0 000-1.664z" />
                   <path d="M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                 </svg>
                 {project.video!.fileName}
               </div>
               <span className="text-surface-700">&middot;</span>
-              <span className="text-xs text-surface-400">{formatDuration(project.video!.duration)}</span>
+              <span className="text-sm text-surface-400">{formatDuration(project.video!.duration)}</span>
               <span className="text-surface-700">&middot;</span>
-              <span className="text-xs text-surface-400">{project.video!.width}x{project.video!.height}</span>
+              <span className="text-sm text-surface-400">{project.video!.width}x{project.video!.height}</span>
               <span className="text-surface-700">&middot;</span>
-              <span className="text-xs text-surface-400">{formatFileSize(project.video!.fileSize)}</span>
+              <span className="text-sm text-surface-400">{formatFileSize(project.video!.fileSize)}</span>
             </div>
 
             {/* Timeline */}
@@ -647,183 +796,25 @@ export default function ProjectDetail() {
               />
             )}
 
-            {/* Frames section (collapsible) */}
-            <div className="mt-6">
-              {frames.length > 0 ? (
-                <div>
-                  <button
-                    onClick={() => setShowFrames(!showFrames)}
-                    className="flex items-center gap-2 text-sm font-medium text-surface-300 hover:text-surface-100 transition-colors mb-3"
-                  >
-                    <svg
-                      width="14"
-                      height="14"
-                      viewBox="0 0 24 24"
-                      fill="none"
-                      stroke="currentColor"
-                      strokeWidth="2"
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      className={`transition-transform ${showFrames ? "rotate-90" : ""}`}
-                    >
-                      <path d="M9 18l6-6-6-6" />
-                    </svg>
-                    {t.extractedFrames}
-                    <span className="text-xs text-surface-500 bg-surface-800 px-2 py-0.5 rounded-full">
-                      {frames.length}
-                    </span>
-                  </button>
-                  {showFrames && (
-                    <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-2">
-                      {frames.map((frame) => (
-                        <div
-                          key={frame.filename}
-                          className="group/frame relative rounded-lg overflow-hidden border border-surface-800 bg-surface-900 hover:border-surface-600 transition-all cursor-pointer"
-                          onClick={() => handleSeek(frame.index * 2)}
-                        >
-                          <img
-                            src={frame.url}
-                            alt={`${t.frameAt} ${formatDuration(frame.index * 2)}`}
-                            className="w-full aspect-video object-cover"
-                            loading="lazy"
-                          />
-                          <div className="absolute bottom-0 inset-x-0 bg-gradient-to-t from-black/70 to-transparent px-2 py-1.5 opacity-0 group-hover/frame:opacity-100 transition-opacity">
-                            <span className="text-[10px] text-white font-mono tabular-nums">
-                              {formatDuration(frame.index * 2)}
-                            </span>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              ) : (
-                /* No frames yet - extraction UI */
-                <div className="border border-dashed border-surface-700 rounded-xl p-8 text-center">
-                  <div className="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center mx-auto mb-3">
-                    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-surface-500">
-                      <rect x="3" y="3" width="18" height="18" rx="2" />
-                      <path d="M3 9h18M9 3v18" />
-                    </svg>
-                  </div>
-                  <p className="text-surface-400 font-medium mb-1 text-sm">{t.noFramesYet}</p>
-                  <p className="text-xs text-surface-500 mb-4">{t.noFramesDesc}</p>
-                  {extractError && (
-                    <div className="flex items-center justify-center gap-2 text-red-400 text-xs mb-3">
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <circle cx="12" cy="12" r="10" />
-                        <path d="M12 8v4M12 16h.01" />
-                      </svg>
-                      {extractError}
-                    </div>
-                  )}
-                  <button
-                    onClick={handleExtractFrames}
-                    disabled={extracting}
-                    className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-400 disabled:bg-surface-800 disabled:text-surface-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand-500/25 disabled:hover:shadow-none"
-                  >
-                    {extracting ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
-                        </svg>
-                        {t.extractingFrames}
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <rect x="3" y="3" width="18" height="18" rx="2" />
-                          <path d="M3 9h18M9 3v18" />
-                        </svg>
-                        {t.extractFrames}
-                      </>
-                    )}
-                  </button>
-                </div>
-              )}
-            </div>
-
-            {/* Generate subtitles section (only when no subtitles yet) */}
-            {!hasSubtitles && frames.length > 0 && (
-              <div className="mt-6 border border-dashed border-surface-700 rounded-xl p-8 text-center">
-                <div className="w-12 h-12 rounded-xl bg-surface-800 flex items-center justify-center mx-auto mb-3">
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-surface-500">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M7.5 8.25h9m-9 3H12m-9.75 1.51c0 1.6 1.123 2.994 2.707 3.227 1.087.16 2.185.283 3.293.369V21l4.076-4.076a1.526 1.526 0 011.037-.443 48.287 48.287 0 005.16-.477c1.584-.233 2.707-1.626 2.707-3.228V6.741c0-1.602-1.123-2.995-2.707-3.228A48.394 48.394 0 0012 3c-2.392 0-4.744.175-7.043.513C3.373 3.746 2.25 5.14 2.25 6.741v6.018z" />
-                  </svg>
-                </div>
-                <p className="text-surface-400 font-medium mb-1 text-sm">{t.noSubtitlesYet}</p>
-                <p className="text-xs text-surface-500 mb-4">{t.generateSubtitlesDesc}</p>
-                {generateError && (
-                  <div className="flex items-center justify-center gap-2 text-red-400 text-xs mb-3">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 8v4M12 16h.01" />
-                    </svg>
-                    {generateError}
-                  </div>
-                )}
-                <button
-                  onClick={handleGenerateSubtitles}
-                  disabled={generating}
-                  className="inline-flex items-center gap-2 bg-brand-500 hover:bg-brand-400 disabled:bg-surface-800 disabled:text-surface-500 text-white px-4 py-2 rounded-lg text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand-500/25 disabled:hover:shadow-none"
-                >
-                  {generating ? (
-                    <>
-                      <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
-                      </svg>
-                      {t.generatingSubtitles}
-                    </>
-                  ) : (
-                    <>
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M12 2a4 4 0 0 1 4 4v4a4 4 0 0 1-8 0V6a4 4 0 0 1 4-4z" />
-                        <path d="M12 18v4M8 22h8" />
-                        <path d="M18 10a6 6 0 0 1-12 0" />
-                      </svg>
-                      {t.generateSubtitles}
-                    </>
-                  )}
-                </button>
-              </div>
-            )}
           </div>
 
           {/* Right: Subtitle List (only when subtitles exist) */}
           {hasSubtitles && (
             <div className="flex flex-col">
-              <div className="flex items-center justify-between mb-3">
-                <h2 className="text-sm font-semibold text-surface-100 flex items-center gap-2">
+              <div className="flex items-center justify-between mb-4">
+                <h2 className="text-base font-semibold text-surface-100 flex items-center gap-2.5">
                   {t.subtitles}
-                  <span className="text-[11px] text-surface-500 bg-surface-800 px-2 py-0.5 rounded-full font-medium">
+                  <span className="text-xs text-surface-500 bg-surface-800 px-2.5 py-1 rounded-full font-medium">
                     {project.subtitles.length}
                   </span>
                 </h2>
-                <button
-                  onClick={handleGenerateSubtitles}
-                  disabled={generating}
-                  className="text-xs text-surface-400 hover:text-surface-200 transition-colors disabled:opacity-50 flex items-center gap-1.5"
-                >
-                  {generating ? (
-                    <>
-                      <svg className="animate-spin h-3 w-3" viewBox="0 0 24 24" fill="none">
-                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
-                      </svg>
-                      {t.generatingSubtitles}
-                    </>
-                  ) : (
-                    <>
-                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M1 4v6h6M23 20v-6h-6" />
-                        <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
-                      </svg>
-                      {t.regenerateSubtitles}
-                    </>
-                  )}
-                </button>
+                <span className="flex items-center gap-1.5 text-xs text-surface-500">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.376 3.622a1 1 0 013.002 3.002L7.368 18.635a2 2 0 01-.855.506l-2.872.838.838-2.872a2 2 0 01.506-.855L16.376 3.622z" />
+                  </svg>
+                  {t.editSubtitle}
+                </span>
               </div>
               <div className="flex-1 overflow-y-auto max-h-[calc(100vh-340px)] space-y-1 pr-1 scrollbar-thin">
                 {project.subtitles.map((sub) => (
@@ -876,6 +867,7 @@ export default function ProjectDetail() {
                         disabled={exporting}
                         className="px-3 py-2.5 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800 transition-all disabled:opacity-50"
                         title={t.reExport}
+                        aria-label={t.reExport}
                       >
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
                           <path d="M1 4v6h6M23 20v-6h-6" />
