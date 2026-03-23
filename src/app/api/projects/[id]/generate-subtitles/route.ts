@@ -251,7 +251,7 @@ export async function POST(
 
     const result = await generateText({
       model: "openai/gpt-4o",
-      maxTokens: 4096,
+      maxOutputTokens: 4096,
       messages: [
         {
           role: "user",

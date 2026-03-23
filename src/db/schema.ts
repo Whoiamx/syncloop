@@ -9,12 +9,25 @@ import {
   jsonb,
 } from "drizzle-orm/pg-core";
 
+export const defaultSubtitleStyle = {
+  fontFamily: "Inter",
+  fontSize: 24,
+  textColor: "#ffffff",
+  backgroundColor: "#000000",
+  backgroundOpacity: 0.75,
+  showBackground: true,
+  animation: "none" as "none" | "fade" | "slide" | "typewriter",
+};
+
+export type SubtitleStyle = typeof defaultSubtitleStyle;
+
 export const projects = pgTable("projects", {
   id: uuid("id").primaryKey().defaultRandom(),
   title: varchar("title", { length: 500 }).notNull(),
   status: varchar("status", { length: 30 }).notNull().default("draft"),
   template: varchar("template", { length: 50 }),
   language: varchar("language", { length: 10 }).default("en"),
+  subtitleStyle: jsonb("subtitle_style").$type<SubtitleStyle>().default(defaultSubtitleStyle),
   createdAt: timestamp("created_at").defaultNow().notNull(),
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });

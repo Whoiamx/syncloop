@@ -33,10 +33,10 @@ export async function POST(
     }
 
     // Validate file type
-    const allowedTypes = ["video/mp4", "video/webm", "video/quicktime", "video/x-msvideo"];
+    const allowedTypes = ["video/mp4", "video/webm"];
     if (!allowedTypes.includes(file.type)) {
       return NextResponse.json(
-        { error: "Invalid file type. Supported: mp4, webm, mov, avi" },
+        { error: "Invalid file type. Supported: mp4, webm" },
         { status: 400 }
       );
     }

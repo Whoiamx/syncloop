@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/db";
-import { projects, videos, subtitles } from "@/db/schema";
+import { projects, videos, subtitles, defaultSubtitleStyle } from "@/db/schema";
 import { eq } from "drizzle-orm";
 import { z } from "zod/v4";
 import fs from "fs/promises";
@@ -49,10 +49,21 @@ export async function GET(
 }
 
 // PATCH /api/projects/[id]
+const subtitleStyleSchema = z.object({
+  fontFamily: z.string().optional(),
+  fontSize: z.number().min(12).max(64).optional(),
+  textColor: z.string().optional(),
+  backgroundColor: z.string().optional(),
+  backgroundOpacity: z.number().min(0).max(1).optional(),
+  showBackground: z.boolean().optional(),
+  animation: z.enum(["none", "fade", "slide", "typewriter"]).optional(),
+});
+
 const updateSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   template: z.enum(["tutorial", "product_demo"]).optional(),
   status: z.string().optional(),
+  subtitleStyle: subtitleStyleSchema.optional(),
 });
 
 export async function PATCH(
@@ -69,9 +80,15 @@ export async function PATCH(
       );
     }
 
+    const updateData: Record<string, unknown> = { ...parsed.data, updatedAt: new Date() };
+    // Merge partial subtitleStyle with defaults to ensure all fields present
+    if (parsed.data.subtitleStyle) {
+      updateData.subtitleStyle = { ...defaultSubtitleStyle, ...parsed.data.subtitleStyle };
+    }
+
     const [updated] = await db
       .update(projects)
-      .set({ ...parsed.data, updatedAt: new Date() })
+      .set(updateData)
       .where(eq(projects.id, params.id))
       .returning();
 
