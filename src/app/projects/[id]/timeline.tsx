@@ -34,11 +34,7 @@ interface TimelineProps {
   onSelectSubtitle: (id: string | null) => void;
   onMarkersChange: (markers: Marker[]) => void;
   onVideoEditsChange: (edits: VideoEdits) => void;
-  onSave: () => void;
-  onExport: () => void;
   onStyleOpen: () => void;
-  saving: boolean;
-  exporting: boolean;
   t: Record<string, string>;
 }
 
@@ -105,71 +101,59 @@ function isInDeletedSection(time: number, deletedSections: { start: number; end:
 // ─── SVG Icons ───────────────────────────────────────────────────────
 const icons = {
   undo: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 7v6h6" /><path d="M21 17a9 9 0 00-9-9 9 9 0 00-6.69 3L3 13" />
     </svg>
   ),
   redo: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 7v6h-6" /><path d="M3 17a9 9 0 019-9 9 9 0 016.69 3L21 13" />
     </svg>
   ),
   scissors: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <circle cx="6" cy="6" r="3" /><circle cx="6" cy="18" r="3" /><line x1="20" y1="4" x2="8.12" y2="15.88" /><line x1="14.47" y1="14.48" x2="20" y2="20" /><line x1="8.12" y1="8.12" x2="12" y2="12" />
     </svg>
   ),
   trash: (
-    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M3 6h18M8 6V4a2 2 0 012-2h4a2 2 0 012 2v2M19 6l-1 14a2 2 0 01-2 2H8a2 2 0 01-2-2L5 6" />
     </svg>
   ),
   play: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z" /></svg>
   ),
   pause: (
-    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
+    <svg aria-hidden="true" width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16" /><rect x="14" y="4" width="4" height="16" /></svg>
   ),
   skipBack: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="19 20 9 12 19 4 19 20" /><line x1="5" y1="19" x2="5" y2="5" />
     </svg>
   ),
   skipForward: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <polygon points="5 4 15 12 5 20 5 4" /><line x1="19" y1="5" x2="19" y2="19" />
     </svg>
   ),
   eye: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" /><circle cx="12" cy="12" r="3" />
     </svg>
   ),
   eyeOff: (
-    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M17.94 17.94A10.07 10.07 0 0112 20c-7 0-11-8-11-8a18.45 18.45 0 015.06-5.94M9.9 4.24A9.12 9.12 0 0112 4c7 0 11 8 11 8a18.5 18.5 0 01-2.16 3.19m-6.72-1.07a3 3 0 11-4.24-4.24" />
       <line x1="1" y1="1" x2="23" y2="23" />
     </svg>
   ),
   marker: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 2v20M5 12h14" />
     </svg>
   ),
-  save: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M19 21H5a2 2 0 01-2-2V5a2 2 0 012-2h11l5 5v11a2 2 0 01-2 2z" />
-      <polyline points="17 21 17 13 7 13 7 21" /><polyline points="7 3 7 8 15 8" />
-    </svg>
-  ),
-  exportIcon: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-      <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-      <polyline points="7 10 12 15 17 10" /><line x1="12" y1="15" x2="12" y2="3" />
-    </svg>
-  ),
   style: (
-    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
+    <svg aria-hidden="true" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round">
       <path d="M12 20h9M16.5 3.5a2.121 2.121 0 113 3L7 19l-4 1 1-4L16.5 3.5z" />
     </svg>
   ),
@@ -197,7 +181,7 @@ function TBtn({
       disabled={disabled}
       title={title}
       aria-label={title}
-      className={`w-7 h-7 flex items-center justify-center rounded-md transition-all ${
+      className={`w-7 h-7 flex items-center justify-center rounded-md transition-colors focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none ${
         active
           ? "bg-brand-500/15 text-brand-400"
           : disabled
@@ -231,11 +215,7 @@ export default function Timeline({
   onSelectSubtitle,
   onMarkersChange,
   onVideoEditsChange,
-  onSave,
-  onExport,
   onStyleOpen,
-  saving,
-  exporting,
   t,
 }: TimelineProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -612,22 +592,33 @@ export default function Timeline({
   }
 
   // ─── Keyboard shortcuts ────────────────────────────────────────────
+  const handleDeleteRef = useRef(handleDelete);
+  handleDeleteRef.current = handleDelete;
+  const togglePlayRef = useRef(togglePlay);
+  togglePlayRef.current = togglePlay;
+  const setContextMenuRef = useRef(setContextMenu);
+  setContextMenuRef.current = setContextMenu;
+
   useEffect(() => {
     function handleKeyDown(e: KeyboardEvent) {
       const tag = (e.target as HTMLElement)?.tagName;
       if (tag === "INPUT" || tag === "TEXTAREA" || tag === "SELECT") return;
 
+      if (e.key === "Escape") {
+        setContextMenuRef.current(null);
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        handleDelete();
+        handleDeleteRef.current();
       } else if (e.key === " ") {
         e.preventDefault();
-        togglePlay();
+        togglePlayRef.current();
       }
     }
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
-  });
+  }, []);
 
   // ─── Overlap detection ─────────────────────────────────────────────
   const overlappingIds = detectOverlaps(
@@ -651,7 +642,7 @@ export default function Timeline({
   const totalTimelineHeight = RULER_HEIGHT + MARKER_AREA_HEIGHT + TRACK_HEIGHT * 2 + 8;
 
   return (
-    <div className="hidden lg:block mt-4 select-none">
+    <div className="hidden lg:block mt-4 select-none touch-manipulation">
       {/* ─── Toolbar ──────────────────────────────────────────────── */}
       <div className="flex items-center gap-1 mb-1.5 px-1 py-1 bg-surface-900/80 border border-surface-800 rounded-lg">
         {/* Undo/Redo */}
@@ -706,29 +697,6 @@ export default function Timeline({
         {/* Subtitle style */}
         <TBtn onClick={onStyleOpen} title={t.subtitleStyle || "Subtitle Style"}>{icons.style}</TBtn>
 
-        <div className="w-px h-5 bg-surface-700 mx-1" />
-
-        {/* Save & Export */}
-        <button
-          onClick={onSave}
-          disabled={saving}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-medium transition-all bg-surface-800 text-surface-300 hover:bg-surface-700 hover:text-surface-100 disabled:opacity-50 border border-surface-700"
-        >
-          {saving ? (
-            <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" /></svg>
-          ) : icons.save}
-          {t.saveChanges || "Save"}
-        </button>
-        <button
-          onClick={onExport}
-          disabled={exporting}
-          className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-xs font-semibold transition-all bg-brand-500 text-white hover:bg-brand-400 disabled:opacity-50"
-        >
-          {exporting ? (
-            <svg className="animate-spin h-3.5 w-3.5" viewBox="0 0 24 24" fill="none"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" /><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" /></svg>
-          ) : icons.exportIcon}
-          {t.exportVideo || "Export video"}
-        </button>
       </div>
 
       {/* ─── Timeline Container ───────────────────────────────────── */}
@@ -746,8 +714,9 @@ export default function Timeline({
             <span className="text-[10px] text-surface-600 font-mono w-3">2</span>
             <button
               onClick={() => setCaptionsVisible(!captionsVisible)}
-              className="text-surface-500 hover:text-surface-300 transition-colors"
+              className="text-surface-500 hover:text-surface-300 transition-colors focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none rounded"
               title={captionsVisible ? (t.trackVisible || "Visible") : (t.trackHidden || "Hidden")}
+              aria-label={captionsVisible ? (t.trackVisible || "Hide captions track") : (t.trackHidden || "Show captions track")}
             >
               {captionsVisible ? icons.eye : icons.eyeOff}
             </button>
@@ -764,8 +733,9 @@ export default function Timeline({
             <span className="text-[10px] text-surface-600 font-mono w-3">1</span>
             <button
               onClick={() => setVideoTrackVisible(!videoTrackVisible)}
-              className="text-surface-500 hover:text-surface-300 transition-colors"
+              className="text-surface-500 hover:text-surface-300 transition-colors focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none rounded"
               title={videoTrackVisible ? (t.trackVisible || "Visible") : (t.trackHidden || "Hidden")}
+              aria-label={videoTrackVisible ? (t.trackVisible || "Hide video track") : (t.trackHidden || "Show video track")}
             >
               {videoTrackVisible ? icons.eye : icons.eyeOff}
             </button>
@@ -816,23 +786,24 @@ export default function Timeline({
               {markers.map((marker) => {
                 const x = timeToX(marker.time);
                 return (
-                  <div
+                  <button
                     key={marker.id}
                     data-marker
-                    className="absolute cursor-pointer group"
+                    className="absolute cursor-pointer group focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none rounded bg-transparent border-0 p-0"
                     style={{ left: x - 5, top: 1 }}
                     onClick={(e) => {
                       e.stopPropagation();
                       onSeek(marker.time);
                     }}
+                    aria-label={`Marker at ${formatRulerTime(marker.time)}${marker.label ? ` — ${marker.label}` : ""}`}
                     title={`${formatRulerTime(marker.time)}${marker.label ? ` — ${marker.label}` : ""}`}
                   >
                     {marker.shape === "circle" ? (
-                      <svg width="10" height="10" viewBox="0 0 10 10">
+                      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
                         <circle cx="5" cy="5" r="4" fill="none" stroke={marker.color} strokeWidth="1.5" />
                       </svg>
                     ) : (
-                      <svg width="10" height="10" viewBox="0 0 10 10">
+                      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
                         <rect x="1" y="1" width="8" height="8" fill="none" stroke={marker.color} strokeWidth="1.5" />
                       </svg>
                     )}
@@ -842,25 +813,26 @@ export default function Timeline({
                         type="color"
                         value={marker.color}
                         onChange={(e) => { e.stopPropagation(); updateMarkerColor(marker.id, e.target.value); }}
-                        className="w-3 h-3 cursor-pointer bg-transparent border-0 p-0"
+                        className="w-3 h-3 cursor-pointer bg-transparent border-0 p-0 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none rounded"
                         onClick={(e) => e.stopPropagation()}
+                        aria-label={t.markerColor || "Marker color"}
                       />
                       <button
                         onClick={(e) => { e.stopPropagation(); toggleMarkerShape(marker.id); }}
-                        className="text-surface-400 hover:text-surface-200 text-[8px]"
-                        title={t.markerShape || "Shape"}
+                        className="text-surface-400 hover:text-surface-200 text-[8px] focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none rounded"
+                        aria-label={t.markerShape || "Toggle marker shape"}
                       >
                         {marker.shape === "circle" ? "○→□" : "□→○"}
                       </button>
                       <button
                         onClick={(e) => { e.stopPropagation(); deleteMarker(marker.id); }}
-                        className="text-red-400 hover:text-red-300 text-[8px]"
-                        title={t.deleteMarker || "Delete"}
+                        className="text-red-400 hover:text-red-300 text-[8px] focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none rounded"
+                        aria-label={t.deleteMarker || "Delete marker"}
                       >
                         ✕
                       </button>
                     </div>
-                  </div>
+                  </button>
                 );
               })}
             </div>
@@ -1031,19 +1003,23 @@ export default function Timeline({
       {/* ─── Context Menu ─────────────────────────────────────────── */}
       {contextMenu && (
         <div
+          role="menu"
           className="fixed z-50 bg-surface-800 border border-surface-700 rounded-lg shadow-xl py-1 min-w-[160px]"
           style={{ left: contextMenu.x, top: contextMenu.y }}
           onClick={(e) => e.stopPropagation()}
+          onKeyDown={(e) => { if (e.key === "Escape") setContextMenu(null); }}
         >
           <button
-            className="w-full text-left px-3 py-1.5 text-xs text-surface-300 hover:bg-surface-700 hover:text-surface-100 flex items-center gap-2"
+            role="menuitem"
+            className="w-full text-left px-3 py-1.5 text-xs text-surface-300 hover:bg-surface-700 hover:text-surface-100 flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none"
             onClick={() => addMarker(contextMenu.time)}
           >
             {icons.marker}
             {t.addMarker || "Add marker"} ({formatRulerTime(contextMenu.time)})
           </button>
           <button
-            className="w-full text-left px-3 py-1.5 text-xs text-surface-300 hover:bg-surface-700 hover:text-surface-100 flex items-center gap-2"
+            role="menuitem"
+            className="w-full text-left px-3 py-1.5 text-xs text-surface-300 hover:bg-surface-700 hover:text-surface-100 flex items-center gap-2 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:outline-none"
             onClick={() => { onSeek(contextMenu.time); setContextMenu(null); }}
           >
             {icons.play}

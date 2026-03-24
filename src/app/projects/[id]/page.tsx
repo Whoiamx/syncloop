@@ -856,8 +856,8 @@ export default function ProjectDetail() {
 
       {/* Main content: Video + Subtitles side by side */}
       {hasVideo ? (
-        <div className={`${hasSubtitles ? "grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-6" : ""}`}>
-          {/* Left: Video Player */}
+        <div className="space-y-6">
+          {/* ─── Top: Video Player + Timeline (full width) ─── */}
           <div>
             <div
               ref={videoContainerRef}
@@ -877,7 +877,7 @@ export default function ProjectDetail() {
               {/* Custom fullscreen button */}
               <button
                 onClick={toggleFullscreen}
-                className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-lg bg-black/60 hover:bg-black/80 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-all"
+                className="absolute top-3 right-3 z-20 w-8 h-8 flex items-center justify-center rounded-lg bg-black/60 hover:bg-black/80 text-white/80 hover:text-white opacity-0 group-hover:opacity-100 transition-opacity"
                 title={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
                 aria-label={isFullscreen ? "Exit fullscreen" : "Fullscreen"}
               >
@@ -931,124 +931,125 @@ export default function ProjectDetail() {
                 onSelectSubtitle={(id) => setActiveSubId(id)}
                 onMarkersChange={handleMarkersChange}
                 onVideoEditsChange={handleVideoEditsChange}
-                onSave={handleSaveProject}
-                onExport={handleExport}
                 onStyleOpen={() => setStyleOpen(!styleOpen)}
-                saving={savingProject}
-                exporting={exporting}
                 t={t}
               />
             )}
-
           </div>
 
-          {/* Right: Subtitle List (only when subtitles exist) */}
+          {/* ─── Bottom: Subtitles (left) + Style/Export (right) ─── */}
           {hasSubtitles && (
-            <div className="flex flex-col">
-              <div className="flex items-center justify-between mb-4">
-                <h2 className="text-base font-semibold text-surface-100 flex items-center gap-2.5">
-                  {t.subtitles}
-                  <span className="text-xs text-surface-500 bg-surface-800 px-2.5 py-1 rounded-full font-medium">
-                    {project.subtitles.length}
-                  </span>
-                </h2>
-              </div>
-              <div className="flex-1 overflow-y-auto max-h-[calc(100vh-340px)] space-y-1 pr-1 scrollbar-thin">
-                {project.subtitles.map((sub) => (
-                  <SubtitleRow
-                    key={sub.id}
-                    sub={sub}
-                    isActive={activeSubId === sub.id}
-                    projectId={project.id}
-                    onUpdated={handleSubtitleUpdated}
-                    onSeek={handleSeek}
-                    t={t}
-                  />
-                ))}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Bottom-left: Subtitle List */}
+              <div className="flex flex-col">
+                <div className="flex items-center justify-between mb-4">
+                  <h2 className="text-base font-semibold text-surface-100 flex items-center gap-2.5">
+                    {t.subtitles}
+                    <span className="text-xs text-surface-500 bg-surface-800 px-2.5 py-1 rounded-full font-medium">
+                      {project.subtitles.length}
+                    </span>
+                  </h2>
+                </div>
+                <div className="flex-1 overflow-y-auto max-h-[calc(100vh-540px)] min-h-[200px] space-y-1 pr-1 scrollbar-thin">
+                  {project.subtitles.map((sub) => (
+                    <SubtitleRow
+                      key={sub.id}
+                      sub={sub}
+                      isActive={activeSubId === sub.id}
+                      projectId={project.id}
+                      onUpdated={handleSubtitleUpdated}
+                      onSeek={handleSeek}
+                      t={t}
+                    />
+                  ))}
+                </div>
               </div>
 
-              {/* Export section */}
-              <div className="mt-4 pt-4 border-t border-surface-800">
-                {exportError && (
-                  <div className="flex items-center gap-2 text-red-400 text-xs mb-3">
-                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                      <circle cx="12" cy="12" r="10" />
-                      <path d="M12 8v4M12 16h.01" />
-                    </svg>
-                    {exportError}
-                  </div>
-                )}
-                {exportReady ? (
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2 text-emerald-400 text-xs">
-                      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
+              {/* Bottom-right: Style Panel + Export */}
+              <div className="flex flex-col">
+                {/* Subtitle Style Panel */}
+                <SubtitleStylePanel
+                  style={subtitleStyle}
+                  onChange={setSubtitleStyle}
+                  onSave={handleSaveStyle}
+                  saving={savingStyle}
+                  t={t}
+                />
+
+                {/* Export section */}
+                <div className="mt-4 pt-4 border-t border-surface-800">
+                  {exportError && (
+                    <div className="flex items-center gap-2 text-red-400 text-xs mb-3">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <circle cx="12" cy="12" r="10" />
+                        <path d="M12 8v4M12 16h.01" />
                       </svg>
-                      {t.exportComplete}
+                      {exportError}
                     </div>
-                    <div className="flex gap-2">
-                      <button
-                        onClick={handleDownload}
-                        className="flex-1 inline-flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand-500/25"
-                      >
+                  )}
+                  {exportReady ? (
+                    <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-emerald-400 text-xs">
                         <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
+                          <path d="M22 11.08V12a10 10 0 11-5.93-9.14" />
+                          <polyline points="22 4 12 14.01 9 11.01" />
                         </svg>
-                        {t.downloadVideo}
-                      </button>
-                      <button
-                        onClick={handleExport}
-                        disabled={exporting}
-                        className="px-3 py-2.5 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800 transition-all disabled:opacity-50"
-                        title={t.reExport}
-                        aria-label={t.reExport}
-                      >
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                          <path d="M1 4v6h6M23 20v-6h-6" />
-                          <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
-                        </svg>
-                      </button>
+                        {t.exportComplete}
+                      </div>
+                      <div className="flex gap-2">
+                        <button
+                          onClick={handleDownload}
+                          className="flex-1 inline-flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors hover:shadow-lg hover:shadow-brand-500/25"
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          {t.downloadVideo}
+                        </button>
+                        <button
+                          onClick={handleExport}
+                          disabled={exporting}
+                          className="px-3 py-2.5 rounded-lg text-sm text-surface-400 hover:text-surface-200 hover:bg-surface-800 transition-colors disabled:opacity-50"
+                          title={t.reExport}
+                          aria-label={t.reExport}
+                        >
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <path d="M1 4v6h6M23 20v-6h-6" />
+                            <path d="M20.49 9A9 9 0 005.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 013.51 15" />
+                          </svg>
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                ) : (
-                  <button
-                    onClick={handleExport}
-                    disabled={exporting}
-                    className="w-full inline-flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 disabled:bg-surface-800 disabled:text-surface-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-all hover:shadow-lg hover:shadow-brand-500/25 disabled:hover:shadow-none"
-                  >
-                    {exporting ? (
-                      <>
-                        <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
-                        </svg>
-                        {t.exportingVideo}
-                      </>
-                    ) : (
-                      <>
-                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                          <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
-                          <polyline points="7 10 12 15 17 10" />
-                          <line x1="12" y1="15" x2="12" y2="3" />
-                        </svg>
-                        {t.exportVideo}
-                      </>
-                    )}
-                  </button>
-                )}
+                  ) : (
+                    <button
+                      onClick={handleExport}
+                      disabled={exporting}
+                      className="w-full inline-flex items-center justify-center gap-2 bg-brand-500 hover:bg-brand-400 disabled:bg-surface-800 disabled:text-surface-500 text-white px-4 py-2.5 rounded-lg text-sm font-semibold transition-colors hover:shadow-lg hover:shadow-brand-500/25 disabled:hover:shadow-none"
+                    >
+                      {exporting ? (
+                        <>
+                          <svg className="animate-spin h-4 w-4" viewBox="0 0 24 24" fill="none">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="3" />
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v3a5 5 0 00-5 5H4z" />
+                          </svg>
+                          {t.exportingVideo}
+                        </>
+                      ) : (
+                        <>
+                          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                            <path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4" />
+                            <polyline points="7 10 12 15 17 10" />
+                            <line x1="12" y1="15" x2="12" y2="3" />
+                          </svg>
+                          {t.exportVideo}
+                        </>
+                      )}
+                    </button>
+                  )}
+                </div>
               </div>
-
-              {/* Subtitle Style Panel */}
-              <SubtitleStylePanel
-                style={subtitleStyle}
-                onChange={setSubtitleStyle}
-                onSave={handleSaveStyle}
-                saving={savingStyle}
-                t={t}
-              />
             </div>
           )}
         </div>
